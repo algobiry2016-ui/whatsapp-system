@@ -306,7 +306,7 @@ dialog#pwDlg::backdrop{background:rgba(0,0,0,.35)}
 const SUPABASE_URL = 'https://eolnpozfksejyfkdcpuz.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_1Lcx6NE0zKb-xrvH1K4cYA_DeJCaJd7';   // نفس مفتاح نظام المشتريات
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth:{ storageKey:'dm-whatsapp-auth' } });  // جلسة مستقلة عن نظام المشتريات
 const $ = id => document.getElementById(id);
 let ME = { email:'', name:'', role:'' };
 
