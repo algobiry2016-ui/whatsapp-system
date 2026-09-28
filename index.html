@@ -147,7 +147,6 @@ section.panel h2::before{content:"";display:inline-block;width:8px;height:8px;bo
 #oPay input:checked+label[for=p1]{background:var(--blue);border-color:var(--blue)}
 #oPay input:checked+label[for=p2]{background:#1E9A7A;border-color:#1E9A7A}
 #oPay input:checked+label[for=p3]{background:var(--pink);border-color:var(--pink)}
-#oWhen input:checked+label{background:var(--violet);border-color:var(--violet)}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px var(--violet-s);outline:none}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;background:none;border:0;overflow:visible;margin-bottom:18px}
 .stat{--c:var(--ink);--cs:#F2F2F0;background:var(--cs);border-radius:16px;padding:14px 16px;position:relative;overflow:hidden;border:0}
@@ -211,21 +210,63 @@ tr.late td{background:#FFF6F7}
   .donut{width:130px;height:130px} .donut>div{width:84px;height:84px}
 }
 
-.alerts{background:linear-gradient(135deg,#C8323F,#E0525E);color:#fff;box-shadow:0 4px 14px rgba(200,50,63,.25)}
-.al-head{width:100%;max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:10px;background:none;border:0;color:#fff;padding:11px 18px;font-weight:700;font-size:.95rem;cursor:pointer;text-align:right}
+.alerts{background:#FBF8F3;color:var(--ink);border-bottom:1px solid #EDE5D8}
+.al-head{width:100%;max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:10px;background:none;border:0;color:var(--ink);padding:10px 18px;font-weight:600;font-size:.88rem;cursor:pointer;text-align:right}
+.al-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);margin-inline-end:8px;vertical-align:middle;animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.al-sp{border:1px solid var(--gold);color:#8A6B3A;border-radius:10px;padding:0 8px;font-size:.75rem;margin-inline-start:6px}
 .al-head .al-tog{transition:transform .2s}
 .alerts.closed .al-tog{transform:rotate(90deg)}
 .alerts.closed ul{display:none}
 .alerts ul{list-style:none;margin:0 auto;padding:0 12px 12px;max-width:1100px;display:flex;flex-direction:column;gap:6px}
-.alerts li{background:rgba(255,255,255,.14);border-radius:12px;padding:8px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:.88rem;cursor:pointer}
-.alerts li:hover{background:rgba(255,255,255,.22)}
-.alerts li .when{background:#fff;color:#C8323F;border-radius:10px;padding:0 9px;font-weight:800;font-size:.8rem}
-.alerts li.late .when{background:#2A0A0E;color:#fff}
+.alerts li{background:#fff;border:1px solid #EDE5D8;border-inline-start:3px solid var(--gold);border-radius:10px;padding:8px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:.88rem;cursor:pointer}
+.alerts li:hover{border-color:var(--gold)}
+.alerts li .when{background:var(--ink);color:#fff;border-radius:10px;padding:0 9px;font-weight:700;font-size:.78rem}
+.alerts li.late{border-inline-start-color:#A4474F} .alerts li.late .when{background:#A4474F}
 .alerts li .what{font-weight:700}
-.alerts li .kind{background:rgba(255,255,255,.25);border-radius:10px;padding:0 8px;font-size:.78rem;font-weight:700}
-.alerts li .todo{margin-inline-start:auto;font-size:.8rem;opacity:.95}
+.alerts li .kind{background:#F3ECE0;color:#8A6B3A;border-radius:10px;padding:0 8px;font-size:.78rem;font-weight:700}
+.alerts li .todo{margin-inline-start:auto;font-size:.78rem;color:var(--muted)}
 @media (max-width:720px){ .alerts li .todo{margin-inline-start:0;width:100%} }
-@media (prefers-reduced-motion:reduce){.al-head .al-tog{transition:none}}
+@media (prefers-reduced-motion:reduce){.al-head .al-tog{transition:none}.al-dot{animation:none}}
+
+/* ===== هوية دوكمنتيشن: أسود، أبيض، ذهبي هادئ ===== */
+:root{--gold:#B08D57;--gold-s:#F6F0E6;--sage:#6F8468;--sage-s:#EEF2EC;--clay:#8C6F62;--clay-s:#F4EEEB;--slate:#5E7288;--slate-s:#EDF1F5;--stone:#8D877E;--stone-s:#F2F1EE;--alert:#A4474F;--alert-s:#F8ECED;
+  --blue:#5E7288;--blue-s:#EDF1F5;--green:#6F8468;--green-s:#EEF2EC;--violet:#8C6F62;--violet-s:#F4EEEB;--amber:#B08D57;--amber-s:#F6F0E6;--red:#A4474F;--red-s:#F8ECED;--teal:#6F8468;--teal-s:#EEF2EC;--pink:#B08D57;--pink-s:#F6F0E6;--bg:#F7F5F1}
+body{font-feature-settings:"tnum"}
+section.panel{border-color:#ECE7DF;box-shadow:0 1px 2px rgba(40,30,10,.03),0 8px 24px rgba(40,30,10,.04)}
+section.panel h2::before{background:var(--gold)}
+h2{letter-spacing:-.2px}
+.stat{background:#fff!important;border:1px solid #ECE7DF;box-shadow:0 1px 2px rgba(40,30,10,.03)}
+.stat::after{width:3px}
+.stat b{color:var(--ink)!important}
+.stats.hero .stat::before{display:none}
+.c-gold{--c:var(--gold)} .c-sage{--c:var(--sage)} .c-clay{--c:var(--clay)} .c-slate{--c:var(--slate)} .c-stone{--c:var(--stone)} .c-alert{--c:var(--alert)} .c-ink{--c:#1C1C1C}
+.c-alert b{color:var(--alert)!important}
+.dl{display:block;font-style:normal;font-size:.72rem;margin-top:4px;color:var(--muted)} .dl.up{color:var(--sage)} .dl.down{color:var(--alert)}
+.chips input:checked+label,#oPay input:checked+label[for]{background:var(--ink)!important;border-color:var(--ink)!important;color:#fff}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-s)}
+.seg button.on{background:var(--ink)}
+.pay-bk{background:#F0F0EE;color:#1C1C1C} .pay-tb{background:var(--sage-s);color:var(--sage)} .pay-tm{background:var(--gold-s);color:#8A6B3A}
+.tag.blue{background:#F0F0EE;color:#1C1C1C} .tag.violet{background:var(--gold-s);color:#8A6B3A} .tag.rose{background:var(--clay-s);color:var(--clay)}
+.st-prep{background:var(--gold-s)!important;color:#8A6B3A!important} .st-ready{background:var(--slate-s)!important;color:var(--slate)!important}
+.st-done{background:var(--sage-s)!important;color:var(--sage)!important} .st-cancel{background:var(--alert-s)!important;color:var(--alert)!important}
+.stp{display:inline-block;border-radius:12px;padding:1px 10px;font-size:.8rem;font-weight:700}
+.chart .col i{background:linear-gradient(180deg,var(--gold),#1C1C1C)}
+tr.late td{background:#FBF4F4}
+.hint{display:block;font-size:.78rem;color:var(--muted);margin-top:4px} .hint.warn{color:var(--alert)}
+.rep-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+h4.sec{font-size:.8rem;letter-spacing:.5px;color:var(--gold);margin:22px 0 10px;font-weight:700;display:flex;align-items:center;gap:10px}
+h4.sec::after{content:"";flex:1;height:1px;background:#E7DFD2}
+details.rep summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px}
+details.rep summary::-webkit-details-marker{display:none}
+details.rep summary h3{margin:0}
+details.rep summary::after{content:"عرض ▾";font-size:.8rem;color:var(--gold);font-weight:600}
+details.rep[open] summary::after{content:"إخفاء ▴"}
+details.rep[open] summary{margin-bottom:12px}
+.cnt{background:var(--gold-s);color:#8A6B3A;border-radius:10px;padding:0 9px;font-size:.78rem;font-weight:700;margin-inline-start:auto}
+.muted{color:var(--muted)}
+@media print{.alerts,details.rep summary::after{display:none!important} details.rep>*{display:block!important}}
+
 #toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--plum);color:#fff;padding:10px 20px;border-radius:24px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 #toast.show{opacity:1}
 @media (prefers-reduced-motion:reduce){#toast{transition:none}}
@@ -269,8 +310,8 @@ tr.late td{background:#FFF6F7}
   </nav>
 </header>
 
-<div id="alerts" class="alerts hidden" role="alert">
-  <button class="al-head" id="alHead" aria-expanded="true"><span id="alTitle"></span><span class="al-tog">▾</span></button>
+<div id="alerts" class="alerts closed hidden" role="status">
+  <button class="al-head" id="alHead" aria-expanded="false"><span id="alTitle"></span><span class="al-tog">▾</span></button>
   <ul id="alList"></ul>
 </div>
 <main>
@@ -300,15 +341,7 @@ tr.late td{background:#FFF6F7}
         </div>
       </div>
       <div class="field hidden" id="oRegionOtherWrap"><label for="oRegionOther">اسم المنطقة</label><input id="oRegionOther"></div>
-      <div class="field wide"><label>موعد التسليم</label>
-        <div class="chips" id="oWhen">
-          <input type="radio" name="when" id="w0" value="0" checked><label for="w0">اليوم</label>
-          <input type="radio" name="when" id="w1" value="1"><label for="w1">بكرة</label>
-          <input type="radio" name="when" id="w2" value="2"><label for="w2">بعد بكرة</label>
-          <input type="radio" name="when" id="w9" value="other"><label for="w9">تاريخ آخر</label>
-        </div>
-      </div>
-      <div class="field hidden" id="oDateWrap"><label for="oDate">تاريخ التسليم</label><input id="oDate" type="date"></div>
+      <div class="field"><label for="oDate">تاريخ التسليم</label><input id="oDate" type="date"><small class="hint" id="oDateHint">اليوم</small></div>
       <div class="field hidden" id="oReceiptWrap"><label for="oReceipt">صورة التحويل <span class="opt">(اختياري)</span></label><input id="oReceipt" type="file" accept="image/*,application/pdf"></div>
       <div class="field hidden" id="oTxnWrap"><label for="oTxn">رقم العملية <span class="opt">(اختياري)</span></label><input id="oTxn"></div>
     </div>
@@ -496,7 +529,7 @@ const fmtDT = iso => `${fmtDate(iso)} ${fmtTime(iso)}`;
 const isAdmin = () => ME.role === 'admin';
 function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2200); }
 function msg(id, text, ok){ const el=$(id); el.textContent=text; el.className='msg '+(ok?'ok':'err'); if(ok) setTimeout(()=>{ if(el.textContent===text) el.textContent=''; },3000); }
-const AUTO_C = ['blue','green','violet','teal','rose'];
+const AUTO_C = ['ink','gold','sage','clay','slate'];
 function stats(el, items){ $(el).innerHTML = items.map(([v,l,c],i) => `<div class="stat c-${c===true?'amber':(c||AUTO_C[i%AUTO_C.length])}"><b>${v}</b><span>${l}</span></div>`).join(''); }
 function countBy(arr, key){ const m={}; arr.forEach(x=>{ const k=(typeof key==='function'?key(x):x[key])||'غير محدد'; m[k]=(m[k]||0)+1; }); return m; }
 function sumBy(arr, key, val){ const m={}; arr.forEach(x=>{ const k=x[key]||'غير محدد'; m[k]=(m[k]||0)+Number(x[val]||0); }); return m; }
@@ -572,7 +605,7 @@ $('menuBtn').onclick = () => { const o = $('tabs').classList.toggle('open'); $('
 $('tabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.act){ closeMenu(); $(b.dataset.act).click(); } else showTab(b.dataset.tab); };
 function initDates(){
   const t = today();
-  ['oFrom','oTo','leFrom','leTo','cFrom','cTo','dDay'].forEach(id => $(id).value = t);
+  ['oFrom','oTo','leFrom','leTo','cFrom','cTo','dDay','oDate'].forEach(id => $(id).value = t); dateHint();
   const d = new Date(); $('cReceived').value = `${t}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   setPeriod('month');
 }
@@ -595,12 +628,9 @@ document.querySelectorAll('input[name="pay"]').forEach(r => r.onchange = () => {
   $('oTxnWrap').classList.toggle('hidden', v==='تحويل بنكي' || !v);
 });
 document.querySelectorAll('input[name="reg"]').forEach(r => r.onchange = () => $('oRegionOtherWrap').classList.toggle('hidden', radioVal('reg')!=='أخرى'));
-document.querySelectorAll('input[name="when"]').forEach(r => r.onchange = () => {
-  const other = radioVal('when')==='other';
-  $('oDateWrap').classList.toggle('hidden', !other);
-  if (other && !$('oDate').value) $('oDate').value = addDays(3);
-});
-function deliveryDate(){ const w = radioVal('when'); return w==='other' ? $('oDate').value : addDays(parseInt(w||'0',10)); }
+function dateHint(){ const d = $('oDate').value; $('oDateHint').textContent = !d ? '' : d < today() ? `${dayLabel(d)} — تاريخ فات، تأكدي` : d===today() ? 'اليوم' : `${dayLabel(d)} · طلب مجدول`; $('oDateHint').classList.toggle('warn', !!d && d < today()); }
+$('oDate').oninput = dateHint;
+function deliveryDate(){ return $('oDate').value; }
 
 $('oSave').onclick = async () => {
   const phone = normPhone($('oPhone').value), amount = num($('oAmount').value), desc = $('oDesc').value.trim();
@@ -623,10 +653,10 @@ $('oSave').onclick = async () => {
     if (error) throw error;
     const when = dayLabel(delivery_date);
     toast(`تم حفظ الطلب ${data.code} — تسليم ${when}`); msg('oMsg', `تم حفظ الطلب ${data.code} — تسليم ${when}`, true);
-    ['oPhone','oAmount','oDesc','oRegionOther','oTxn','oReceipt','oDate'].forEach(id => $(id).value='');
+    ['oPhone','oAmount','oDesc','oRegionOther','oTxn','oReceipt'].forEach(id => $(id).value='');
     document.querySelectorAll('input[name="pay"],input[name="reg"]').forEach(r => r.checked=false);
-    $('w0').checked = true;
-    ['oReceiptWrap','oTxnWrap','oRegionOtherWrap','oDateWrap'].forEach(id => $(id).classList.add('hidden'));
+    $('oDate').value = today(); dateHint();
+    ['oReceiptWrap','oTxnWrap','oRegionOtherWrap'].forEach(id => $(id).classList.add('hidden'));
     $('oType').value='عادي'; $('oSource').value=''; $('oStatus').value='قيد التجهيز';
     loadOrders();
   }catch(e){ msg('oMsg','ما انحفظ الطلب: '+(e.message||e)); }
@@ -680,8 +710,9 @@ async function loadHero(){
 /* ================== التنبيهات ================== */
 async function loadAlerts(){
   const t = today(), lim = addDays(2);
-  const { data } = await sb.from('wa_orders').select('id,code,phone,description,order_type,status,delivery_date').in('status', OPEN_ST).lte('delivery_date', lim).order('delivery_date').limit(200);
-  const list = data||[];
+  const { data } = await sb.from('wa_orders').select('id,code,phone,description,order_type,status,delivery_date,created_at').in('status', OPEN_ST).lte('delivery_date', lim).order('delivery_date').limit(200);
+  // المجدولة فقط: موعد تسليمها بعد يوم تسجيلها
+  const list = (data||[]).filter(o => o.delivery_date > fmtDate(o.created_at));
   if (!list.length){ $('alerts').classList.add('hidden'); return; }
   const late = list.filter(o => o.delivery_date < t), tod = list.filter(o => o.delivery_date===t);
   const special = list.filter(o => o.order_type!=='عادي');
@@ -689,7 +720,7 @@ async function loadAlerts(){
   if (late.length) parts.push(`${late.length} متأخر`);
   if (tod.length) parts.push(`${tod.length} لازم يتسلم اليوم`);
   const rest = list.length - late.length - tod.length; if (rest) parts.push(`${rest} خلال يومين`);
-  $('alTitle').textContent = `🔔 تنبيه: ${parts.join(' · ')}${special.length ? ` — منها ${special.length} مسكة/مناسبة` : ''}`;
+  $('alTitle').innerHTML = `<i class="al-dot"></i>طلبات مجدولة: ${parts.join(' · ')}${special.length ? ` <span class="al-sp">${special.length} مسكة/مناسبة</span>` : ''}`;
   $('alList').innerHTML = list.map(o => {
     const d = o.delivery_date, isLate = d < t, ready = o.status==='تم التجهيز';
     const when = isLate ? `متأخر (${dayLabel(d)})` : dayLabel(d);
@@ -915,13 +946,16 @@ function setPeriod(p){
 $('rPeriod').onchange = () => { setPeriod($('rPeriod').value); loadReports(); };
 ['rFrom','rTo'].forEach(id => $(id).onchange = () => { $('rPeriod').value='custom'; loadReports(); });
 
-const PALETTE = ['#3B6FD8','#2E9D6A','#7B5BD6','#E08A1E','#D2465A','#1E9AA8','#C2549B','#6B7280'];
-const PAY_COLOR = { 'تحويل بنكي':'#3B6FD8', 'تابي':'#1E9A7A', 'تمارا':'#C2549B' };
+const PALETTE = ['#1C1C1C','#B08D57','#7D8B77','#8C6F62','#5E7288','#A9A39A','#C8B08A','#4A4A48'];
+const PAY_COLOR = { 'تحويل بنكي':'#1C1C1C', 'تابي':'#7D8B77', 'تمارا':'#B08D57' };
+const pct = (a,b) => b ? Math.round((a-b)/b*100) : null;
+function delta(a,b){ const p = pct(a,b); if (p===null) return '<em class="dl">لا توجد مقارنة</em>'; return `<em class="dl ${p>=0?'up':'down'}">${p>=0?'▲':'▼'} <bdi dir="ltr">${Math.abs(p)}%</bdi> عن الفترة السابقة</em>`; }
 function breakdown(title, counts, sums, colors){
   const keys = Object.keys(counts).sort((a,b)=>(sums?sums[b]-sums[a]:counts[b]-counts[a]));
   const max = Math.max(1, ...keys.map(k => sums?sums[k]:counts[k]));
+  const tot = keys.reduce((s,k)=>s+(sums?sums[k]:counts[k]),0);
   return `<section class="panel"><h3>${title}</h3>${keys.length?`<div class="bd">${keys.map((k,i)=>{ const c=(colors&&colors[k])||PALETTE[i%PALETTE.length]; const v=sums?sums[k]:counts[k];
-    return `<div class="bd-row"><div class="bd-top"><span><i class="dot" style="background:${c}"></i>${esc(k)}</span><span class="num">${sums?`<b>${money(v)}</b> · ${counts[k]} طلب`:`<b>${v}</b>`}</span></div><div class="bar"><i style="width:${Math.max(3,Math.round(v/max*100))}%;background:${c}"></i></div></div>`; }).join('')}</div>`:'<div class="empty">لا يوجد</div>'}</section>`;
+    return `<div class="bd-row"><div class="bd-top"><span><i class="dot" style="background:${c}"></i>${esc(k)}</span><span class="num">${sums?`<b>${money(v)}</b> · ${counts[k]} طلب`:`<b>${v}</b>`} · <bdi dir="ltr">${Math.round(v/tot*100)}%</bdi></span></div><div class="bar"><i style="width:${Math.max(3,Math.round(v/max*100))}%;background:${c}"></i></div></div>`; }).join('')}</div>`:'<div class="empty">لا يوجد</div>'}</section>`;
 }
 function donut(title, sums, colors, fmt=money, center='الإجمالي'){
   const keys = Object.keys(sums).filter(k=>sums[k]>0).sort((a,b)=>sums[b]-sums[a]);
@@ -929,78 +963,146 @@ function donut(title, sums, colors, fmt=money, center='الإجمالي'){
   if (!total) return `<section class="panel"><h3>${title}</h3><div class="empty">لا يوجد</div></section>`;
   let acc = 0; const segs = keys.map((k,i)=>{ const c=(colors&&colors[k])||PALETTE[i]; const a=acc/total*360; acc+=sums[k]; return `${c} ${a}deg ${acc/total*360}deg`; });
   return `<section class="panel"><h3>${title}</h3><div class="donutwrap"><div class="donut" style="background:conic-gradient(${segs.join(',')})"><div><b>${fmt(total)}</b><span>${center}</span></div></div>
-    <ul class="legend">${keys.map((k,i)=>`<li><i class="dot" style="background:${(colors&&colors[k])||PALETTE[i]}"></i>${esc(k)}<b>${Math.round(sums[k]/total*100)}%</b><small>${fmt(sums[k])}</small></li>`).join('')}</ul></div></section>`;
+    <ul class="legend">${keys.map((k,i)=>`<li><i class="dot" style="background:${(colors&&colors[k])||PALETTE[i]}"></i>${esc(k)}<b dir="ltr">${Math.round(sums[k]/total*100)}%</b><small>${fmt(sums[k])}</small></li>`).join('')}</ul></div></section>`;
 }
-function dayChart(days){
-  const keys = Object.keys(days); const max = Math.max(1, ...keys.map(k=>days[k].amt));
-  if (keys.length > 62) return '';
-  return `<section class="panel"><h3>المبيعات يومياً</h3><div class="chart">${keys.map(k=>`<div class="col" title="${k}: ${money(days[k].amt)} · ${days[k].n} طلب"><span class="cv">${days[k].amt?Math.round(days[k].amt).toLocaleString('en-US'):''}</span><i style="height:${Math.round(days[k].amt/max*100)}%"></i><span class="cl${keys.length>12 && +k.slice(8)%5 && k!==keys[0] && k!==keys[keys.length-1] ? ' sk':''}">${+k.slice(8)}</span></div>`).join('')}</div></section>`;
+function colChart(title, labels, values, fmtTip, skipLabels){
+  const max = Math.max(1, ...values);
+  return `<section class="panel"><h3>${title}</h3><div class="chart">${labels.map((l,i)=>`<div class="col" title="${esc(fmtTip(i))}"><span class="cv">${values[i]?Math.round(values[i]).toLocaleString('en-US'):''}</span><i style="height:${Math.round(values[i]/max*100)}%"></i><span class="cl${skipLabels && skipLabels(i) ? ' sk':''}">${l}</span></div>`).join('')}</div></section>`;
 }
+function table(title, head, rows, open){
+  return `<section class="panel"><details class="rep" ${open?'open':''}><summary><h3>${title}</h3><span class="cnt">${rows.length}</span></summary>
+    <div class="tablewrap"><table><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.join(''):`<tr><td colspan="${head.length}" class="empty">لا يوجد</td></tr>`}</tbody></table></div></details></section>`;
+}
+let REP_ORDERS = [];
 async function loadReports(){
   const from = $('rFrom').value, to = $('rTo').value;
-  $('rOut').innerHTML = '<div class="empty">جاري التحميل…</div>';
-  const [orders, paid, leads, complaints, { data:daily }] = await Promise.all([
-    fetchOrders(from, to), fetchPaid(from, to), leadsWithConversion(from, to), fetchComplaints(from, to),
-    sb.from('wa_daily').select('*').gte('day', from).lte('day', to).order('day')
+  const nDays = Math.round((new Date(to) - new Date(from))/86400000) + 1;
+  const pTo = addDays(-1, from), pFrom = addDays(-nDays, from);
+  $('rOut').innerHTML = '<div class="empty">جاري تجهيز التقرير…</div>';
+  const [paid, prev, sched, leads, complaints, { data:daily }, { data:profiles }] = await Promise.all([
+    fetchPaid(from, to), fetchPaid(pFrom, pTo), fetchOrders(from, to), leadsWithConversion(from, to), fetchComplaints(from, to),
+    sb.from('wa_daily').select('*').gte('day', from).lte('day', to).order('day'),
+    sb.from('wa_profiles').select('email,name')
   ]);
+  const nameOf = e => ((profiles||[]).find(p => p.email.toLowerCase()===(e||'').toLowerCase())||{}).name || e || '—';
   const sum = a => a.reduce((s,o)=>s+Number(o.amount),0);
-  const paidLive = paid.filter(o=>o.status!=='ملغي');
-  const done = paidLive;   // المبيعات = كل طلب انحوّل مبلغه في الفترة
-  const delivered = orders.filter(o=>o.status==='تم التوصيل');
-  const pend = orders.filter(o=>OPEN_ST.includes(o.status));
-  const cancelled = paid.filter(o=>o.status==='ملغي').length;
-  const unver = paidLive.filter(o=>!o.verified);
-  const sales = sum(done);
+  const live = paid.filter(o=>o.status!=='ملغي').sort((a,b)=>a.created_at<b.created_at?1:-1);
+  REP_ORDERS = live;
+  const prevLive = prev.filter(o=>o.status!=='ملغي');
+  const cancelled = paid.filter(o=>o.status==='ملغي');
+  const sales = sum(live), prevSales = sum(prevLive);
+  const aov = live.length ? sales/live.length : 0, prevAov = prevLive.length ? sum(prevLive)/prevLive.length : 0;
+  const unver = live.filter(o=>!o.verified);
+  const scheduled = live.filter(o => o.delivery_date > fmtDate(o.created_at));
+  const delivered = sched.filter(o=>o.status==='تم التوصيل');
+  const open = sched.filter(o=>OPEN_ST.includes(o.status));
+  const regN = o => o.region==='أخرى' ? (o.region_other||'أخرى') : o.region;
+  const liveR = live.map(o => ({...o, regionN: regN(o), emp: nameOf(o.created_by)}));
   const D = (daily||[]).reduce((a,r)=>{ for(const k of ['stories','views','replies','inq_price','inq_avail','inq_delivery','inq_occasion','inq_other']) a[k]=(a[k]||0)+r[k]; return a; }, {});
   const inqTotal = (D.inq_price||0)+(D.inq_avail||0)+(D.inq_delivery||0)+(D.inq_occasion||0)+(D.inq_other||0);
   const conv = leads.filter(l=>l.converted).length;
-  const doneR = done.map(o => ({...o, regionN: o.region==='أخرى' ? (o.region_other||'أخرى') : o.region}));
   const solved = complaints.filter(c=>c.status==='تم الحل').length;
+  const orderRate = inqTotal ? Math.round(live.length/inqTotal*100) : null;
 
+  // يومي
   const days = {};
-  for (let d = new Date(from+'T00:00:00'); ymd(d) <= to; d.setDate(d.getDate()+1)) days[ymd(d)] = { n:0, amt:0, reg:0, leads:0, dr:null };
-  done.forEach(o => { const x=days[fmtDate(o.created_at)]; if(x){ x.n++; x.amt+=Number(o.amount); } });
-  delivered.forEach(o => { const x=days[o.delivery_date]; if(x) x.reg++; });
+  for (let d = new Date(from+'T00:00:00'); ymd(d) <= to; d.setDate(d.getDate()+1)) days[ymd(d)] = { n:0, amt:0, del:0, leads:0, dr:null };
+  live.forEach(o => { const x=days[fmtDate(o.created_at)]; if(x){ x.n++; x.amt+=Number(o.amount); } });
+  delivered.forEach(o => { const x=days[o.delivery_date]; if(x) x.del++; });
   leads.forEach(l => { const x=days[fmtDate(l.created_at)]; if(x) x.leads++; });
   (daily||[]).forEach(r => { if(days[r.day]) days[r.day].dr = r; });
-  const dailyRows = Object.keys(days).reverse().map(k => { const x=days[k], r=x.dr; const inq = r ? r.inq_price+r.inq_avail+r.inq_delivery+r.inq_occasion+r.inq_other : 0;
+  const dk = Object.keys(days);
+  // أيام الأسبوع والساعات
+  const wd = Array(7).fill(0), wdN = Array(7).fill(0), hr = Array(24).fill(0);
+  live.forEach(o => { const d = new Date(o.created_at); wd[d.getDay()] += Number(o.amount); wdN[d.getDay()]++; hr[d.getHours()]++; });
+  // أفضل العملاء
+  const cm = {}; live.forEach(o => { const c = cm[o.phone] ||= { n:0, t:0 }; c.n++; c.t += Number(o.amount); });
+  const topC = Object.entries(cm).sort((a,b)=>b[1].t-a[1].t).slice(0,10);
+  // الحالات
+  const stCount = countBy(sched,'status');
+
+  const orderRows = live.map(o => `<tr><td><b>${o.code}</b></td><td class="num">${fmtDT(o.created_at)}</td><td>${dayLabel(o.delivery_date)}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(o.payment)}</td><td>${esc(regN(o))}</td><td>${esc(o.order_type)}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'✓':'—'}</td><td>${esc(nameOf(o.created_by))}</td></tr>`);
+  const dailyRows = dk.slice().reverse().map(k => { const x=days[k], r=x.dr; const inq = r ? r.inq_price+r.inq_avail+r.inq_delivery+r.inq_occasion+r.inq_other : 0;
     const top = r ? topKey({'السعر':r.inq_price,'التوفر':r.inq_avail,'التوصيل':r.inq_delivery,'المناسبات':r.inq_occasion,'أخرى':r.inq_other}) : '—';
-    return `<tr><td><b>${WEEK[new Date(k+'T00:00:00').getDay()]}</b> <span class="num" style="color:var(--muted)">${k}</span></td><td class="num">${x.n}</td><td class="num"><b>${money(x.amt)}</b></td><td class="num">${x.reg}</td>
-    <td class="num">${r?r.stories:'<span class="tag warn">لم يُسجل</span>'}</td><td class="num">${r?r.views:''}</td><td class="num">${r?r.replies:''}</td><td class="num">${x.leads}</td><td class="num">${r?inq:''}</td><td>${r&&inq?top:'—'}</td></tr>`; }).join('');
+    return `<tr><td><b>${WEEK[new Date(k+'T00:00:00').getDay()]}</b> <span class="num muted">${k}</span></td><td class="num">${x.n}</td><td class="num"><b>${money(x.amt)}</b></td><td class="num">${x.n?money(x.amt/x.n):'—'}</td><td class="num">${x.del}</td>
+    <td class="num">${r?r.stories:'<span class="tag warn">لم يُسجل</span>'}</td><td class="num">${r?r.views:''}</td><td class="num">${r?r.replies:''}</td><td class="num">${x.leads}</td><td class="num">${r?inq:''}</td><td>${r&&inq?top:'—'}</td></tr>`; });
+  const compRows = complaints.map(c => `<tr><td class="num">${fmtDT(c.received_at)}</td><td><b>${esc(c.order_code)}</b></td><td>${esc(c.ctype)}</td><td class="desc">${esc(c.details)}</td><td class="desc">${esc(c.action)}</td><td>${esc(c.responsible||'لم يُحدد')}</td><td><span class="stp ${c.status==='تم الحل'?'st-done':'st-prep'}">${esc(c.status)}</span></td><td class="num">${c.closed_at?Math.max(0,Math.round((new Date(c.closed_at)-new Date(c.received_at))/3600000))+' ساعة':'—'}</td></tr>`);
+  const unverRows = unver.map(o => `<tr><td><b>${o.code}</b></td><td class="num">${fmtDate(o.created_at)}</td><td class="num">${esc(o.phone)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(o.payment)}</td><td>${o.receipt_path?'إيصال مرفق':(o.txn_ref?esc(o.txn_ref):'<span class="tag warn">بدون إثبات</span>')}</td></tr>`);
+  const leadRows = leads.map(l => `<tr><td class="num">${fmtDT(l.created_at)}</td><td class="num">${esc(l.phone)}</td><td>${esc(l.interest)}</td><td class="desc">${esc(l.note)}</td><td>${l.converted?`<span class="stp st-done">طلب ${l.converted}</span>`:'<span class="stp st-prep">لم يطلب</span>'}</td></tr>`);
+  const topRows = topC.map(([p,c],i) => `<tr><td>${i+1}</td><td class="num"><b>${esc(p)}</b></td><td class="num">${c.n}</td><td class="num"><b>${money(c.t)}</b></td><td class="num">${money(c.t/c.n)}</td></tr>`);
 
   $('rOut').innerHTML = `
+    <div class="rep-head"><div><h2>تقرير مبيعات وخدمة عملاء الواتس</h2><p class="sub">من ${from} إلى ${to} · ${nDays} يوم · مقارنة مع ${pFrom} ← ${pTo}</p></div>
+      <button class="btn ghost small no-print" id="rCsv">تنزيل الطلبات Excel</button></div>
+    <h4 class="sec">المبيعات</h4>
     <div class="stats">
-      <div class="stat c-green"><b>${money(sales)}</b><span>المبيعات (حسب يوم التحويل)</span></div>
-      <div class="stat c-blue"><b>${done.length}</b><span>طلب</span></div>
-      <div class="stat c-violet"><b>${money(done.length?sales/done.length:0)}</b><span>متوسط الطلب</span></div>
-      <div class="stat c-teal"><b>${delivered.length}</b><span>طلب توصّل في الفترة</span></div>
-      <div class="stat c-amber"><b>${pend.length}</b><span>مجدول ولم يُسلّم (${money(sum(pend))})</span></div>
-      <div class="stat ${unver.length?'c-red':'c-teal'}"><b>${money(sum(unver))}</b><span>بانتظار التحقق (${unver.length})</span></div>
-      <div class="stat c-rose"><b>${leads.length?Math.round(conv/leads.length*100)+'%':'—'}</b><span>تحويل المحتملين (${conv} من ${leads.length})</span></div>
-      <div class="stat c-ink"><b>${cancelled}</b><span>طلب ملغي</span></div>
+      <div class="stat c-ink"><b>${money(sales)}</b><span>المبيعات (حسب يوم التحويل)</span>${delta(sales,prevSales)}</div>
+      <div class="stat c-gold"><b>${live.length}</b><span>عدد الطلبات</span>${delta(live.length,prevLive.length)}</div>
+      <div class="stat c-sage"><b>${money(aov)}</b><span>متوسط قيمة الطلب</span>${delta(aov,prevAov)}</div>
+      <div class="stat c-clay"><b>${money(sales/nDays)}</b><span>متوسط المبيعات اليومي</span></div>
+      <div class="stat c-slate"><b>${scheduled.length}</b><span>طلبات مجدولة لتاريخ لاحق (${money(sum(scheduled))})</span></div>
+      <div class="stat ${unver.length?'c-alert':'c-sage'}"><b>${money(sum(unver))}</b><span>بانتظار التحقق (${unver.length} طلب)</span></div>
+      <div class="stat c-stone"><b>${cancelled.length}</b><span>ملغي (${money(sum(cancelled))})</span></div>
     </div>
-    ${dayChart(days)}
+    ${colChart('المبيعات اليومية', dk.map(k=>+k.slice(8)), dk.map(k=>days[k].amt), i=>`${dk[i]}: ${money(days[dk[i]].amt)} · ${days[dk[i]].n} طلب`, i=>dk.length>12 && (+dk[i].slice(8))%5 && i && i<dk.length-1)}
     <div class="two">
-      ${donut('المبيعات حسب وسيلة الدفع', sumBy(done,'payment','amount'), PAY_COLOR)}
-      ${breakdown('حسب المنطقة', countBy(doneR,'regionN'), sumBy(doneR,'regionN','amount'))}
-      ${breakdown('حسب نوع الطلب', countBy(done,'order_type'), sumBy(done,'order_type','amount'))}
-      ${breakdown('مصدر العميل', countBy(done,'source'), sumBy(done,'source','amount'))}
+      ${donut('حسب وسيلة الدفع', sumBy(live,'payment','amount'), PAY_COLOR)}
+      ${breakdown('حسب المنطقة', countBy(liveR,'regionN'), sumBy(liveR,'regionN','amount'))}
+      ${breakdown('حسب نوع الطلب', countBy(live,'order_type'), sumBy(live,'order_type','amount'))}
+      ${breakdown('حسب مصدر العميل', countBy(live,'source'), sumBy(live,'source','amount'))}
+      ${breakdown('حسب الموظف المسجِّل', countBy(liveR,'emp'), sumBy(liveR,'emp','amount'))}
+      ${breakdown('حسب يوم الأسبوع', Object.fromEntries(WEEK.map((w,i)=>[w,wdN[i]]).filter(e=>e[1])), Object.fromEntries(WEEK.map((w,i)=>[w,wd[i]]).filter((e,i)=>wdN[i])))}
     </div>
-    <h2 style="margin:8px 0 12px">التفاعل والاستفسارات</h2>
+    ${colChart('أوقات استقبال الطلبات (حسب الساعة)', hr.map((_,i)=>i), hr, i=>`الساعة ${i}:00 — ${hr[i]} طلب`, i=>i%3)}
+
+    <h4 class="sec">التشغيل والتوصيل</h4>
     <div class="stats">
-      <div class="stat c-violet"><b>${D.stories||0}</b><span>ستوري منشور</span></div>
-      <div class="stat c-blue"><b>${(D.views||0).toLocaleString('en-US')}</b><span>مشاهدة</span></div>
-      <div class="stat c-teal"><b>${D.replies||0}</b><span>رد على الستوري</span></div>
-      <div class="stat c-amber"><b>${inqTotal}</b><span>استفسار</span></div>
-      <div class="stat ${complaints.length-solved?'c-red':'c-green'}"><b>${complaints.length}</b><span>شكوى (${solved} تم حلها)</span></div>
+      <div class="stat c-sage"><b>${delivered.length}</b><span>توصّل في الفترة</span></div>
+      <div class="stat c-gold"><b>${open.length}</b><span>مواعيدها في الفترة ولم تُسلّم</span></div>
+      <div class="stat c-slate"><b>${stCount['تم التجهيز']||0}</b><span>جاهزة بانتظار التسليم</span></div>
+      <div class="stat c-clay"><b>${sched.filter(o=>OPEN_ST.includes(o.status) && o.delivery_date<today()).length}</b><span>متأخرة عن موعدها</span></div>
+    </div>
+
+    <h4 class="sec">التفاعل والاستفسارات</h4>
+    <div class="stats">
+      <div class="stat c-ink"><b>${D.stories||0}</b><span>ستوري منشور</span></div>
+      <div class="stat c-gold"><b>${(D.views||0).toLocaleString('en-US')}</b><span>مشاهدة${D.stories?` · ${Math.round(D.views/D.stories)} لكل ستوري`:''}</span></div>
+      <div class="stat c-sage"><b>${D.replies||0}</b><span>رد${D.views?` · ${(D.replies/D.views*100).toFixed(1)}% من المشاهدات`:''}</span></div>
+      <div class="stat c-clay"><b>${inqTotal}</b><span>استفسار</span></div>
+      <div class="stat c-slate"><b>${orderRate===null?'—':orderRate+'%'}</b><span>نسبة الطلبات إلى الاستفسارات</span></div>
+      <div class="stat c-stone"><b>${leads.length?Math.round(conv/leads.length*100)+'%':'—'}</b><span>تحويل المحتملين (${conv} من ${leads.length})</span></div>
     </div>
     <div class="two">
-      ${donut('الاستفسارات حسب النوع', Object.fromEntries(Object.entries({'السعر':D.inq_price||0,'التوفر':D.inq_avail||0,'التوصيل':D.inq_delivery||0,'المناسبات':D.inq_occasion||0,'أخرى':D.inq_other||0})), null, n=>n.toLocaleString('en-US'), 'استفسار')}
-      ${breakdown('الشكاوى حسب النوع', countBy(complaints,'ctype'))}
-      ${breakdown('الشكاوى حسب المتسبب', countBy(complaints,c=>c.responsible||'لم يُحدد بعد'))}
+      ${donut('الاستفسارات حسب النوع', {'السعر':D.inq_price||0,'التوفر':D.inq_avail||0,'التوصيل':D.inq_delivery||0,'المناسبات':D.inq_occasion||0,'أخرى':D.inq_other||0}, null, n=>n.toLocaleString('en-US'), 'استفسار')}
       ${breakdown('المحتملين: استفسروا عن', countBy(leads,'interest'))}
     </div>
-    <section class="panel"><h3>التقرير اليومي</h3><div class="tablewrap"><table><thead><tr><th>اليوم</th><th>الطلبات</th><th>المبيعات</th><th>توصيلات</th><th>ستوري</th><th>مشاهدات</th><th>ردود</th><th>محتملين</th><th>استفسارات</th><th>أكثر استفسار</th></tr></thead><tbody>${dailyRows}</tbody></table></div></section>`;
+
+    <h4 class="sec">الشكاوى</h4>
+    <div class="stats">
+      <div class="stat c-ink"><b>${complaints.length}</b><span>إجمالي الشكاوى</span></div>
+      <div class="stat c-sage"><b>${solved}</b><span>تم حلها</span></div>
+      <div class="stat ${complaints.length-solved?'c-alert':'c-sage'}"><b>${complaints.length-solved}</b><span>قيد المتابعة</span></div>
+      <div class="stat c-clay"><b>${live.length?(complaints.length/live.length*100).toFixed(1)+'%':'—'}</b><span>نسبة الشكاوى للطلبات</span></div>
+    </div>
+    <div class="two">
+      ${breakdown('الشكاوى حسب النوع', countBy(complaints,'ctype'))}
+      ${breakdown('الشكاوى حسب المتسبب', countBy(complaints,c=>c.responsible||'لم يُحدد بعد'))}
+    </div>
+
+    <h4 class="sec">التفاصيل</h4>
+    ${table('التقرير اليومي', ['اليوم','الطلبات','المبيعات','متوسط الطلب','توصيلات','ستوري','مشاهدات','ردود','محتملين','استفسارات','أكثر استفسار'], dailyRows, true)}
+    ${table('كل الطلبات', ['الرقم','التسجيل','التسليم','الجوال','الوصف','المبلغ','الدفع','المنطقة','النوع','الحالة','تحقق','سجّلها'], orderRows)}
+    ${isAdmin()?table('مبالغ بانتظار التحقق', ['الرقم','التاريخ','الجوال','المبلغ','الدفع','الإثبات'], unverRows):''}
+    ${table('أفضل ١٠ عملاء في الفترة', ['#','الجوال','الطلبات','الإجمالي','المتوسط'], topRows)}
+    ${table('سجل الشكاوى', ['الاستلام','الطلب','النوع','التفاصيل','الإجراء','المتسبب','الحالة','مدة الحل'], compRows)}
+    ${table('العملاء المحتملين', ['التاريخ','الجوال','استفسر عن','ملاحظة','النتيجة'], leadRows)}`;
+  $('rCsv').onclick = () => exportCSV(REP_ORDERS, `تقرير-الواتس-${from}-${to}.csv`);
+}
+function exportCSV(list, name){
+  const head = ['الرقم','تاريخ التسجيل','وقت التسجيل','تاريخ التسليم','الجوال','الوصف','المبلغ','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق'];
+  const rows = list.map(o => [o.code, fmtDate(o.created_at), fmtTime(o.created_at), o.delivery_date, o.phone, o.description, o.amount, o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا']);
+  const csv = '\ufeff' + [head, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download = name; a.click();
 }
 
 /* ================== جداول الجوال كبطاقات ================== */
