@@ -134,6 +134,98 @@ dialog#iosDlg{border:1px solid var(--line);border-radius:var(--r-lg);padding:20p
 dialog#iosDlg::backdrop{background:rgba(0,0,0,.35)}
 dialog#pwDlg{border:1px solid var(--line);border-radius:var(--r-lg);padding:20px;width:min(360px,92vw)}
 dialog#pwDlg::backdrop{background:rgba(0,0,0,.35)}
+
+/* ===== ألوان وواجهة ===== */
+:root{--bg:#F4F3F1;--blue:#3B6FD8;--blue-s:#E8EFFC;--green:#2E9D6A;--green-s:#E4F5EC;--violet:#7B5BD6;--violet-s:#EFEAFB;--amber:#D9831A;--amber-s:#FDF0DC;--red:#D2465A;--red-s:#FCE8EB;--teal:#1E9AA8;--teal-s:#E1F4F6;--pink:#C2549B;--pink-s:#F9E7F2}
+html,body{background:var(--bg)}
+main{padding-top:18px}
+section.panel{background:#fff;border:1px solid #ECEAE6;box-shadow:0 1px 2px rgba(0,0,0,.03),0 6px 20px rgba(0,0,0,.04);border-radius:18px}
+section.panel h2::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--pink);margin-inline-end:8px;vertical-align:middle}
+.btn{background:linear-gradient(135deg,#1C1C1C,#3A3A3A);box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.btn.ghost{background:#fff;box-shadow:none}
+.chips input:checked+label{background:var(--ink);border-color:var(--ink);color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.15)}
+#oPay input:checked+label[for=p1]{background:var(--blue);border-color:var(--blue)}
+#oPay input:checked+label[for=p2]{background:#1E9A7A;border-color:#1E9A7A}
+#oPay input:checked+label[for=p3]{background:var(--pink);border-color:var(--pink)}
+#oWhen input:checked+label{background:var(--violet);border-color:var(--violet)}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px var(--violet-s);outline:none}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;background:none;border:0;overflow:visible;margin-bottom:18px}
+.stat{--c:var(--ink);--cs:#F2F2F0;background:var(--cs);border-radius:16px;padding:14px 16px;position:relative;overflow:hidden;border:0}
+.stat::after{content:"";position:absolute;inset-inline-start:0;top:14px;bottom:14px;width:4px;border-radius:4px;background:var(--c)}
+.stat b{color:var(--c);font-size:1.45rem;display:block;line-height:1.3;font-variant-numeric:tabular-nums}
+.stat span{color:#4d4d4a;font-size:.8rem}
+.c-blue{--c:var(--blue);--cs:var(--blue-s)} .c-green{--c:var(--green);--cs:var(--green-s)} .c-violet{--c:var(--violet);--cs:var(--violet-s)}
+.c-amber{--c:var(--amber);--cs:var(--amber-s)} .c-red{--c:var(--red);--cs:var(--red-s)} .c-teal{--c:var(--teal);--cs:var(--teal-s)}
+.c-rose{--c:var(--pink);--cs:var(--pink-s)} .c-ink{--c:#1C1C1C;--cs:#EFEFED}
+.stats.hero .stat{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.03),0 6px 18px rgba(0,0,0,.05)}
+.stats.hero .stat::before{content:"";position:absolute;inset:0;background:var(--cs);opacity:.55}
+.stats.hero .stat>*{position:relative}
+.tag{background:var(--green-s);color:var(--green)} .tag.warn{background:var(--amber-s);color:var(--amber)}
+.tag.rose{background:var(--pink-s);color:var(--pink)} .tag.blue{background:var(--blue-s);color:var(--blue)} .tag.violet{background:var(--violet-s);color:var(--violet)}
+.tag:not(.warn):not(.rose):not(.blue):not(.violet):empty{display:none}
+th{background:#F7F6F4;color:#55534f}
+tr.late td{background:#FFF6F7}
+.seg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.seg button{border:1px solid var(--line);background:#fff;border-radius:22px;padding:7px 16px;cursor:pointer;font-weight:600;color:#55534f}
+.seg button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.stsel{font-weight:700;border-radius:20px!important;padding:4px 10px!important;border:0!important;cursor:pointer}
+.st-prep{background:var(--amber-s)!important;color:var(--amber)} .st-ready{background:var(--blue-s)!important;color:var(--blue)} .st-done{background:var(--green-s)!important;color:var(--green)} .st-cancel{background:var(--red-s)!important;color:var(--red)}
+.pay{display:inline-block;padding:1px 10px;border-radius:12px;font-size:.8rem;font-weight:700}
+.pay-bk{background:var(--blue-s);color:var(--blue)} .pay-tb{background:#DDF6EE;color:#1E9A7A} .pay-tm{background:var(--pink-s);color:var(--pink)}
+.vchk{display:inline-flex;gap:4px;align-items:center;cursor:pointer;font-size:.85rem}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-inline-end:6px;vertical-align:middle}
+.bd{display:flex;flex-direction:column;gap:12px}
+.bd-top{display:flex;justify-content:space-between;gap:10px;font-size:.88rem;margin-bottom:5px}
+.bar{height:9px;background:#F0EFEC;border-radius:6px}
+.bar i{border-radius:6px}
+.donutwrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.donut{width:150px;height:150px;border-radius:50%;display:grid;place-items:center;flex-shrink:0}
+.donut>div{width:98px;height:98px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.donut b{font-size:.95rem} .donut span{font-size:.72rem;color:var(--muted)}
+.legend{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;flex:1;min-width:150px}
+.legend li{display:flex;align-items:center;gap:4px;font-size:.88rem}
+.legend b{margin-inline-start:auto} .legend small{color:var(--muted);min-width:80px;text-align:left}
+.chart{display:flex;align-items:flex-end;gap:3px;height:190px;padding-top:18px}
+.chart .col{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;position:relative}
+.chart .col i{width:100%;max-width:34px;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,var(--pink),var(--violet));min-height:2px}
+.chart .cv{font-size:.62rem;color:var(--muted);writing-mode:vertical-rl;transform:rotate(180deg);margin-bottom:3px}
+.chart .cl{font-size:.7rem;color:var(--muted);margin-top:4px}
+@media (max-width:720px){
+  main{padding:14px 12px 60px}
+  section.panel{padding:16px 14px;border-radius:16px}
+  .stats{grid-template-columns:1fr 1fr}
+  .stat b{font-size:1.15rem}
+  .tablewrap{border:0;overflow:visible}
+  table.rt,table.rt tbody{display:block;background:none}
+  table.rt thead{display:none}
+  table.rt tr{display:block;background:#fff;border:1px solid #ECEAE6;border-radius:14px;margin-bottom:10px;padding:6px 14px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+  table.rt tr.late{border-color:#F3C3CB;background:#FFF9FA}
+  table.rt td{display:flex;justify-content:space-between;align-items:center;gap:14px;border:0;padding:6px 0;white-space:normal;text-align:left;background:none!important}
+  table.rt td::before{content:attr(data-label);color:var(--muted);font-size:.78rem;font-weight:600;text-align:right;flex-shrink:0}
+  table.rt td:first-child{border-bottom:1px dashed var(--line);padding-bottom:9px;margin-bottom:3px;font-size:1rem}
+  table.rt td:empty,table.rt td[data-label=""]:not(:has(*)){display:none}
+  table.rt td.empty{display:block;text-align:center} table.rt td.empty::before{display:none}
+  .chart{height:150px;gap:2px}
+  .chart .cv{display:none}
+  .chart .cl.sk{visibility:hidden}
+  .donut{width:130px;height:130px} .donut>div{width:84px;height:84px}
+}
+
+.alerts{background:linear-gradient(135deg,#C8323F,#E0525E);color:#fff;box-shadow:0 4px 14px rgba(200,50,63,.25)}
+.al-head{width:100%;max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:10px;background:none;border:0;color:#fff;padding:11px 18px;font-weight:700;font-size:.95rem;cursor:pointer;text-align:right}
+.al-head .al-tog{transition:transform .2s}
+.alerts.closed .al-tog{transform:rotate(90deg)}
+.alerts.closed ul{display:none}
+.alerts ul{list-style:none;margin:0 auto;padding:0 12px 12px;max-width:1100px;display:flex;flex-direction:column;gap:6px}
+.alerts li{background:rgba(255,255,255,.14);border-radius:12px;padding:8px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:.88rem;cursor:pointer}
+.alerts li:hover{background:rgba(255,255,255,.22)}
+.alerts li .when{background:#fff;color:#C8323F;border-radius:10px;padding:0 9px;font-weight:800;font-size:.8rem}
+.alerts li.late .when{background:#2A0A0E;color:#fff}
+.alerts li .what{font-weight:700}
+.alerts li .kind{background:rgba(255,255,255,.25);border-radius:10px;padding:0 8px;font-size:.78rem;font-weight:700}
+.alerts li .todo{margin-inline-start:auto;font-size:.8rem;opacity:.95}
+@media (max-width:720px){ .alerts li .todo{margin-inline-start:0;width:100%} }
+@media (prefers-reduced-motion:reduce){.al-head .al-tog{transition:none}}
 #toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--plum);color:#fff;padding:10px 20px;border-radius:24px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 #toast.show{opacity:1}
 @media (prefers-reduced-motion:reduce){#toast{transition:none}}
@@ -177,9 +269,15 @@ dialog#pwDlg::backdrop{background:rgba(0,0,0,.35)}
   </nav>
 </header>
 
+<div id="alerts" class="alerts hidden" role="alert">
+  <button class="al-head" id="alHead" aria-expanded="true"><span id="alTitle"></span><span class="al-tog">▾</span></button>
+  <ul id="alList"></ul>
+</div>
 <main>
 <!-- ============ الطلبات ============ -->
 <div data-view="orders">
+  <div class="stats hero" id="oHero"></div>
+
   <section class="panel">
     <h2>طلب جديد</h2>
     <p class="sub">رقم الطلب يطلع تلقائي بعد الحفظ.</p>
@@ -202,6 +300,15 @@ dialog#pwDlg::backdrop{background:rgba(0,0,0,.35)}
         </div>
       </div>
       <div class="field hidden" id="oRegionOtherWrap"><label for="oRegionOther">اسم المنطقة</label><input id="oRegionOther"></div>
+      <div class="field wide"><label>موعد التسليم</label>
+        <div class="chips" id="oWhen">
+          <input type="radio" name="when" id="w0" value="0" checked><label for="w0">اليوم</label>
+          <input type="radio" name="when" id="w1" value="1"><label for="w1">بكرة</label>
+          <input type="radio" name="when" id="w2" value="2"><label for="w2">بعد بكرة</label>
+          <input type="radio" name="when" id="w9" value="other"><label for="w9">تاريخ آخر</label>
+        </div>
+      </div>
+      <div class="field hidden" id="oDateWrap"><label for="oDate">تاريخ التسليم</label><input id="oDate" type="date"></div>
       <div class="field hidden" id="oReceiptWrap"><label for="oReceipt">صورة التحويل <span class="opt">(اختياري)</span></label><input id="oReceipt" type="file" accept="image/*,application/pdf"></div>
       <div class="field hidden" id="oTxnWrap"><label for="oTxn">رقم العملية <span class="opt">(اختياري)</span></label><input id="oTxn"></div>
     </div>
@@ -210,22 +317,29 @@ dialog#pwDlg::backdrop{background:rgba(0,0,0,.35)}
       <div class="grid">
         <div class="field"><label for="oType">نوع الطلب</label><select id="oType"><option>عادي</option><option>مناسبة / حفلة</option><option>مسكة عروس</option></select></div>
         <div class="field"><label for="oSource">العميل</label><select id="oSource"><option value="">—</option><option>عميل جديد</option><option>عميل سابق</option><option>توصية</option><option>ستوري</option><option>إعلان</option></select></div>
-        <div class="field"><label for="oStatus">حالة الطلب</label><select id="oStatus"><option value="">—</option><option>جديد</option><option>قيد التجهيز</option><option>مع المندوب</option><option>تم التسليم</option><option>ملغي</option></select></div>
+        <div class="field"><label for="oStatus">الحالة</label><select id="oStatus"><option>قيد التجهيز</option><option>تم التجهيز</option><option>تم التوصيل</option></select></div>
       </div>
     </details>
     <div class="actions"><button class="btn" id="oSave">حفظ الطلب</button><span class="msg" id="oMsg"></span></div>
   </section>
 
   <section class="panel">
+    <div class="seg" id="oView">
+      <button data-v="reg" class="on">سُجّلت اليوم</button>
+      <button data-v="today">تسليم اليوم</button>
+      <button data-v="pending">لم تُسلّم</button>
+      <button data-v="upcoming">القادمة</button>
+      <button data-v="range">فترة</button>
+    </div>
     <div class="toolbar">
-      <div class="field"><label for="oFrom">من</label><input type="date" id="oFrom"></div>
-      <div class="field"><label for="oTo">إلى</label><input type="date" id="oTo"></div>
+      <div class="field hidden rangeF"><label for="oFrom">سُجّلت من</label><input type="date" id="oFrom"></div>
+      <div class="field hidden rangeF"><label for="oTo">إلى</label><input type="date" id="oTo"></div>
       <div class="field"><label for="oSearch">بحث بالجوال أو الرقم</label><input id="oSearch" placeholder="05… أو WA-"></div>
       <button class="btn ghost" id="oCsv">تنزيل Excel (CSV)</button>
     </div>
     <div class="stats" id="oStats"></div>
     <div class="tablewrap"><table><thead><tr>
-      <th>الرقم</th><th>الوقت</th><th>الجوال</th><th>الوصف</th><th>المبلغ</th><th>الدفع</th><th>المنطقة</th><th>النوع</th><th>الحالة</th><th>الإثبات</th><th>التحقق</th><th class="adm"></th>
+      <th>الرقم</th><th>التسليم</th><th>الجوال</th><th>الوصف</th><th>المبلغ</th><th>الدفع</th><th>المنطقة</th><th>الحالة</th><th>الإثبات</th><th>التحقق</th><th class="adm"></th>
     </tr></thead><tbody id="oRows"></tbody></table></div>
   </section>
 </div>
@@ -290,7 +404,7 @@ dialog#pwDlg::backdrop{background:rgba(0,0,0,.35)}
       <div class="field"><label for="cType">نوع الشكوى</label><select id="cType"><option>تأخير</option><option>جودة الورد</option><option>اختلاف عن الصورة</option><option>تلف أثناء التوصيل</option><option>خطأ في العنوان</option><option>تعامل المندوب</option><option>أخرى</option></select></div>
       <div class="field wide"><label for="cDetails">تفاصيل الشكوى</label><textarea id="cDetails"></textarea></div>
       <div class="field wide"><label for="cAction">الإجراء المتخذ</label><input id="cAction" placeholder="مثال: استبدال الباقة / تعويض / اعتذار"></div>
-      <div class="field"><label for="cResp">المتسبب</label><select id="cResp"><option>غير محدد</option><option>المندوب</option><option>التجهيز</option><option>خدمة العملاء</option><option>المورد</option><option>العميل</option></select></div>
+      <div class="field"><label for="cResp">المتسبب</label><select id="cResp"><option value="">— يُحدد لاحقاً</option><option>المندوب</option><option>التجهيز</option><option>خدمة العملاء</option><option>المورد</option><option>العميل</option></select></div>
       <div class="field"><label for="cStatus">حالة الشكوى</label><select id="cStatus"><option>قيد المتابعة</option><option>تم الحل</option></select></div>
       <div class="field"><label for="cImage">صورة <span class="opt">(اختياري)</span></label><input id="cImage" type="file" accept="image/*"></div>
       <div class="field wide"><label for="cNotes">ملاحظات <span class="opt">(اختياري)</span></label><input id="cNotes"></div>
@@ -382,7 +496,8 @@ const fmtDT = iso => `${fmtDate(iso)} ${fmtTime(iso)}`;
 const isAdmin = () => ME.role === 'admin';
 function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2200); }
 function msg(id, text, ok){ const el=$(id); el.textContent=text; el.className='msg '+(ok?'ok':'err'); if(ok) setTimeout(()=>{ if(el.textContent===text) el.textContent=''; },3000); }
-function stats(el, items){ $(el).innerHTML = items.map(([v,l,alert]) => `<div class="stat${alert?' alert':''}"><b>${v}</b><span>${l}</span></div>`).join(''); }
+const AUTO_C = ['blue','green','violet','teal','rose'];
+function stats(el, items){ $(el).innerHTML = items.map(([v,l,c],i) => `<div class="stat c-${c===true?'amber':(c||AUTO_C[i%AUTO_C.length])}"><b>${v}</b><span>${l}</span></div>`).join(''); }
 function countBy(arr, key){ const m={}; arr.forEach(x=>{ const k=(typeof key==='function'?key(x):x[key])||'غير محدد'; m[k]=(m[k]||0)+1; }); return m; }
 function sumBy(arr, key, val){ const m={}; arr.forEach(x=>{ const k=x[key]||'غير محدد'; m[k]=(m[k]||0)+Number(x[val]||0); }); return m; }
 function topKey(m){ let best='—',bv=0; for(const k in m) if(m[k]>bv){best=k;bv=m[k];} return best; }
@@ -464,81 +579,176 @@ function initDates(){
 
 /* ================== الطلبات ================== */
 const radioVal = name => (document.querySelector(`input[name="${name}"]:checked`)||{}).value || '';
+const addDays = (n, base) => { const d = base ? new Date(base+'T00:00:00') : new Date(); d.setDate(d.getDate()+n); return ymd(d); };
+const WEEK = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+function dayLabel(day){
+  if (day===today()) return 'اليوم';
+  if (day===addDays(1)) return 'بكرة';
+  if (day===addDays(-1)) return 'أمس';
+  return `${WEEK[new Date(day+'T00:00:00').getDay()]} ${day.slice(5).replace('-','/')}`;
+}
+const ST_CLASS = { 'قيد التجهيز':'st-prep', 'تم التجهيز':'st-ready', 'تم التوصيل':'st-done', 'ملغي':'st-cancel' };
+const OPEN_ST = ['قيد التجهيز','تم التجهيز'];
 document.querySelectorAll('input[name="pay"]').forEach(r => r.onchange = () => {
   const v = radioVal('pay');
   $('oReceiptWrap').classList.toggle('hidden', v!=='تحويل بنكي');
   $('oTxnWrap').classList.toggle('hidden', v==='تحويل بنكي' || !v);
 });
 document.querySelectorAll('input[name="reg"]').forEach(r => r.onchange = () => $('oRegionOtherWrap').classList.toggle('hidden', radioVal('reg')!=='أخرى'));
+document.querySelectorAll('input[name="when"]').forEach(r => r.onchange = () => {
+  const other = radioVal('when')==='other';
+  $('oDateWrap').classList.toggle('hidden', !other);
+  if (other && !$('oDate').value) $('oDate').value = addDays(3);
+});
+function deliveryDate(){ const w = radioVal('when'); return w==='other' ? $('oDate').value : addDays(parseInt(w||'0',10)); }
 
 $('oSave').onclick = async () => {
   const phone = normPhone($('oPhone').value), amount = num($('oAmount').value), desc = $('oDesc').value.trim();
-  const payment = radioVal('pay'), region = radioVal('reg');
+  const payment = radioVal('pay'), region = radioVal('reg'), delivery_date = deliveryDate();
   if (phone.length < 9) return msg('oMsg','رقم الجوال ناقص');
   if (!desc) return msg('oMsg','اكتبي وصف الطلب');
   if (amount === null || amount <= 0) return msg('oMsg','اكتبي مبلغ الطلب');
   if (!payment) return msg('oMsg','اختاري وسيلة الدفع');
   if (!region) return msg('oMsg','اختاري المنطقة');
   if (region==='أخرى' && !$('oRegionOther').value.trim()) return msg('oMsg','اكتبي اسم المنطقة');
+  if (!delivery_date) return msg('oMsg','اختاري تاريخ التسليم');
   $('oSave').disabled = true;
   try{
     const receipt_path = payment==='تحويل بنكي' ? await upload($('oReceipt').files[0], 'receipts') : null;
-    const row = { phone, amount, description:desc, payment, region,
+    const row = { phone, amount, description:desc, payment, region, delivery_date,
       region_other: region==='أخرى' ? $('oRegionOther').value.trim() : null,
-      order_type:$('oType').value, source:$('oSource').value||null, status:$('oStatus').value||null,
+      order_type:$('oType').value, source:$('oSource').value||null, status:$('oStatus').value,
       txn_ref: payment!=='تحويل بنكي' ? ($('oTxn').value.trim()||null) : null, receipt_path };
     const { data, error } = await sb.from('wa_orders').insert(row).select('code').single();
     if (error) throw error;
-    toast(`تم حفظ الطلب ${data.code}`); msg('oMsg', `تم حفظ الطلب ${data.code}`, true);
-    ['oPhone','oAmount','oDesc','oRegionOther','oTxn','oReceipt'].forEach(id => $(id).value='');
+    const when = dayLabel(delivery_date);
+    toast(`تم حفظ الطلب ${data.code} — تسليم ${when}`); msg('oMsg', `تم حفظ الطلب ${data.code} — تسليم ${when}`, true);
+    ['oPhone','oAmount','oDesc','oRegionOther','oTxn','oReceipt','oDate'].forEach(id => $(id).value='');
     document.querySelectorAll('input[name="pay"],input[name="reg"]').forEach(r => r.checked=false);
-    ['oReceiptWrap','oTxnWrap','oRegionOtherWrap'].forEach(id => $(id).classList.add('hidden'));
-    $('oType').value='عادي'; $('oSource').value=''; $('oStatus').value='';
+    $('w0').checked = true;
+    ['oReceiptWrap','oTxnWrap','oRegionOtherWrap','oDateWrap'].forEach(id => $(id).classList.add('hidden'));
+    $('oType').value='عادي'; $('oSource').value=''; $('oStatus').value='قيد التجهيز';
     loadOrders();
   }catch(e){ msg('oMsg','ما انحفظ الطلب: '+(e.message||e)); }
   $('oSave').disabled = false;
 };
 
-let ORDERS = [];
+// الطلبات حسب تاريخ التسليم (للتشغيل والتوصيل)
 async function fetchOrders(from, to){
-  const { data, error } = await sb.from('wa_orders').select('*').gte('created_at', startISO(from)).lt('created_at', endISO(to)).order('created_at',{ascending:false}).limit(5000);
+  const { data, error } = await sb.from('wa_orders').select('*').gte('delivery_date', from).lte('delivery_date', to).order('delivery_date').order('created_at').limit(5000);
   if (error){ toast('خطأ في جلب الطلبات'); return []; }
   return data;
 }
+// الطلبات حسب تاريخ التسجيل والتحويل — المبيعات تنحسب بهذا التاريخ
+async function fetchPaid(from, to){
+  const { data } = await sb.from('wa_orders').select('*').gte('created_at', startISO(from)).lt('created_at', endISO(to)).limit(5000);
+  return data||[];
+}
+
+let ORDERS = [], OVIEW = 'reg';
 async function loadOrders(){
-  ORDERS = await fetchOrders($('oFrom').value, $('oTo').value);
+  let q = sb.from('wa_orders').select('*');
+  if (OVIEW==='reg') q = q.gte('created_at', startISO(today())).lt('created_at', endISO(today()));
+  if (OVIEW==='today') q = q.eq('delivery_date', today());
+  if (OVIEW==='pending') q = q.in('status', OPEN_ST);
+  if (OVIEW==='upcoming') q = q.gt('delivery_date', today());
+  if (OVIEW==='range') q = q.gte('created_at', startISO($('oFrom').value)).lt('created_at', endISO($('oTo').value));
+  const [{ data, error }] = await Promise.all([ q.order(OVIEW==='reg'||OVIEW==='range' ? 'created_at' : 'delivery_date', { ascending: !(OVIEW==='reg'||OVIEW==='range') }).limit(5000), loadHero(), loadAlerts() ]);
+  if (error) toast('خطأ في جلب الطلبات');
+  ORDERS = data||[];
   renderOrders();
 }
+async function loadHero(){
+  const t = today();
+  const [{ data:todayReg }, { data:open }, { data:unv }] = await Promise.all([
+    sb.from('wa_orders').select('amount,status').gte('created_at', startISO(t)).lt('created_at', endISO(t)),
+    sb.from('wa_orders').select('delivery_date,status').in('status', OPEN_ST),
+    isAdmin() ? sb.from('wa_orders').select('amount').eq('verified', false).neq('status','ملغي') : Promise.resolve({ data:[] })
+  ]);
+  const reg = (todayReg||[]).filter(o => o.status!=='ملغي');
+  const openL = open||[];
+  const unver = (unv||[]).reduce((s,o)=>s+Number(o.amount),0);
+  stats('oHero', [
+    [money(reg.reduce((s,o)=>s+Number(o.amount),0)), 'مبيعات اليوم (المحوّل اليوم)', 'green'],
+    [reg.length, 'طلب سُجّل اليوم', 'blue'],
+    [openL.filter(o => o.delivery_date===t).length, 'لازم يتسلم اليوم', 'rose'],
+    [openL.filter(o => o.delivery_date>t).length, 'طلبات قادمة مجدولة', 'violet'],
+    ...(isAdmin() ? [[money(unver), 'مبالغ بانتظار التحقق', unver ? 'amber' : 'teal']] : [])
+  ]);
+}
+
+/* ================== التنبيهات ================== */
+async function loadAlerts(){
+  const t = today(), lim = addDays(2);
+  const { data } = await sb.from('wa_orders').select('id,code,phone,description,order_type,status,delivery_date').in('status', OPEN_ST).lte('delivery_date', lim).order('delivery_date').limit(200);
+  const list = data||[];
+  if (!list.length){ $('alerts').classList.add('hidden'); return; }
+  const late = list.filter(o => o.delivery_date < t), tod = list.filter(o => o.delivery_date===t);
+  const special = list.filter(o => o.order_type!=='عادي');
+  const parts = [];
+  if (late.length) parts.push(`${late.length} متأخر`);
+  if (tod.length) parts.push(`${tod.length} لازم يتسلم اليوم`);
+  const rest = list.length - late.length - tod.length; if (rest) parts.push(`${rest} خلال يومين`);
+  $('alTitle').textContent = `🔔 تنبيه: ${parts.join(' · ')}${special.length ? ` — منها ${special.length} مسكة/مناسبة` : ''}`;
+  $('alList').innerHTML = list.map(o => {
+    const d = o.delivery_date, isLate = d < t, ready = o.status==='تم التجهيز';
+    const when = isLate ? `متأخر (${dayLabel(d)})` : dayLabel(d);
+    const todo = isLate ? 'موعده فات! تأكدي من التسليم' : d===t ? (ready ? 'جاهز — لازم يتسلم اليوم' : 'لازم يتجهز ويتسلم اليوم') : (ready ? 'جاهز للتسليم' : `لازم يتجهز لـ${dayLabel(d)}`);
+    return `<li class="${isLate?'late':''}" data-go="${o.code}"><span class="when">${when}</span>${o.order_type!=='عادي'?`<span class="kind">${esc(o.order_type)}</span>`:''}<span class="what">${esc(o.description)}</span><span>${o.code} · ${esc(o.phone)}</span><span class="todo">${todo}</span></li>`;
+  }).join('');
+  $('alerts').classList.remove('hidden');
+}
+$('alHead').onclick = () => { const c = $('alerts').classList.toggle('closed'); $('alHead').setAttribute('aria-expanded', !c); };
+$('alList').onclick = e => {
+  const li = e.target.closest('li'); if (!li) return;
+  showTab('orders');
+  OVIEW = 'pending'; document.querySelectorAll('#oView button').forEach(x => x.classList.toggle('on', x.dataset.v==='pending'));
+  document.querySelectorAll('.rangeF').forEach(x => x.classList.add('hidden'));
+  $('oSearch').value = li.dataset.go; loadOrders();
+};
+setInterval(() => { if (ME.role) loadAlerts(); }, 5*60*1000);
 function renderOrders(){
   const q = arDigits($('oSearch').value.trim()).toUpperCase();
   const qp = normPhone(q);
   const list = ORDERS.filter(o => !q || o.code.includes(q) || (qp && o.phone.includes(qp)));
-  const active = list.filter(o => o.status!=='ملغي');
-  const total = active.reduce((s,o)=>s+Number(o.amount),0);
-  const unver = active.filter(o=>!o.verified).reduce((s,o)=>s+Number(o.amount),0);
-  stats('oStats', [[active.length,'طلب'],[money(total),'المبيعات'],[money(active.length?total/active.length:0),'متوسط الطلب'],[money(unver),'بانتظار التحقق', unver>0]]);
-  const statuses = ['','جديد','قيد التجهيز','مع المندوب','تم التسليم','ملغي'];
-  $('oRows').innerHTML = list.length ? list.map(o => `<tr>
-    <td><b>${o.code}</b></td>
-    <td class="num">${fmtDate(o.created_at)===today() ? fmtTime(o.created_at) : fmtDT(o.created_at)}</td>
-    <td class="num">${esc(o.phone)}</td>
+  const live = list.filter(o => o.status!=='ملغي');
+  const pend = live.filter(o => OPEN_ST.includes(o.status));
+  const sum = a => a.reduce((s,o)=>s+Number(o.amount),0);
+  stats('oStats', [[live.length,'طلب','blue'],[money(sum(live)),'المبلغ','green'],[pend.length,'لم يُسلّم بعد','amber'],[money(live.length?sum(live)/live.length:0),'متوسط الطلب','violet']]);
+  const t = today();
+  $('oRows').innerHTML = list.length ? list.map(o => `<tr class="${OPEN_ST.includes(o.status) && o.delivery_date < t ? 'late' : ''}">
+    <td><b>${o.code}</b>${o.order_type!=='عادي'?` <span class="tag violet">${esc(o.order_type)}</span>`:''}</td>
+    <td><span class="tag ${o.delivery_date===t?'blue':o.delivery_date>t?'violet':''}">${dayLabel(o.delivery_date)}</span></td>
+    <td class="num"><a class="link" href="https://wa.me/966${esc(o.phone.replace(/^0/,''))}" target="_blank" rel="noopener">${esc(o.phone)}</a></td>
     <td class="desc">${esc(o.description)}${o.source?` <span class="tag rose">${esc(o.source)}</span>`:''}</td>
     <td class="num"><b>${money(o.amount)}</b></td>
-    <td>${esc(o.payment)}</td>
+    <td><span class="pay pay-${{'تمارا':'tm','تابي':'tb','تحويل بنكي':'bk'}[o.payment]}">${esc(o.payment)}</span></td>
     <td>${esc(o.region==='أخرى' ? (o.region_other||'أخرى') : o.region)}</td>
-    <td>${o.order_type==='عادي'?'عادي':`<span class="tag">${esc(o.order_type)}</span>`}</td>
-    <td><select data-status="${o.id}">${statuses.map(s=>`<option value="${s}" ${s===(o.status||'')?'selected':''}>${s||'—'}</option>`).join('')}</select></td>
+    <td><select class="stsel ${ST_CLASS[o.status]||''}" data-status="${o.id}">${Object.keys(ST_CLASS).map(s=>`<option ${s===o.status?'selected':''}>${s}</option>`).join('')}</select></td>
     <td>${o.receipt_path ? `<a class="link" data-file="${esc(o.receipt_path)}">الإيصال</a>` : (o.txn_ref ? esc(o.txn_ref) : '<span class="tag warn">لا يوجد</span>')}</td>
-    <td>${isAdmin() ? `<input type="checkbox" data-verify="${o.id}" ${o.verified?'checked':''} aria-label="تم التحقق">` : (o.verified?'<span class="tag">تم</span>':'<span class="tag warn">بانتظار</span>')}</td>
+    <td>${isAdmin() ? `<label class="vchk"><input type="checkbox" data-verify="${o.id}" ${o.verified?'checked':''}> ${o.verified?'تم':'تحقق'}</label>` : (o.verified?'<span class="tag">تم</span>':'<span class="tag warn">بانتظار</span>')}</td>
     ${isAdmin()?`<td><button class="btn ghost small" data-del-order="${o.id}">حذف</button></td>`:''}
-  </tr>`).join('') : `<tr><td colspan="12" class="empty">ما فيه طلبات في هذي الفترة.</td></tr>`;
+  </tr>`).join('') : `<tr><td colspan="11" class="empty">${{reg:'ما انسجلت طلبات اليوم لين الحين.',today:'ما فيه طلبات للتسليم اليوم.',pending:'كل الطلبات تسلّمت 👌',upcoming:'ما فيه طلبات مجدولة للأيام الجاية.',range:'ما فيه طلبات في هذي الفترة.'}[OVIEW]}</td></tr>`;
 }
+$('oView').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  OVIEW = b.dataset.v;
+  document.querySelectorAll('#oView button').forEach(x => x.classList.toggle('on', x===b));
+  document.querySelectorAll('.rangeF').forEach(x => x.classList.toggle('hidden', OVIEW!=='range'));
+  loadOrders();
+};
 ['oFrom','oTo'].forEach(id => $(id).onchange = loadOrders);
 $('oSearch').oninput = renderOrders;
 $('oRows').addEventListener('change', async e => {
   const s = e.target.dataset.status, v = e.target.dataset.verify;
-  if (s){ const { error } = await sb.from('wa_orders').update({ status:e.target.value||null }).eq('id', s); toast(error?'ما انحفظت الحالة':'تم تحديث الحالة'); if(!error) ORDERS.find(o=>o.id==s).status = e.target.value||null; renderOrders(); }
-  if (v){ const { error } = await sb.from('wa_orders').update({ verified:e.target.checked }).eq('id', v); toast(error?'ما انحفظ التحقق':(e.target.checked?'تم التحقق من المبلغ':'أُلغي التحقق')); if(!error) ORDERS.find(o=>o.id==v).verified = e.target.checked; renderOrders(); }
+  if (s){
+    const st = e.target.value, o = ORDERS.find(o=>o.id==s);
+    const { error } = await sb.from('wa_orders').update({ status:st }).eq('id', s);
+    if (error) toast('ما انحفظت الحالة');
+    else { o.status = st; toast(st==='تم التوصيل' ? `تم توصيل ${o.code} ✓` : st==='تم التجهيز' ? `${o.code} جاهز للتسليم` : 'تم تحديث الحالة'); }
+    renderOrders(); loadHero(); loadAlerts();
+  }
+  if (v){ const { error } = await sb.from('wa_orders').update({ verified:e.target.checked }).eq('id', v); toast(error?'ما انحفظ التحقق':(e.target.checked?'تم التحقق من المبلغ':'أُلغي التحقق')); if(!error) ORDERS.find(o=>o.id==v).verified = e.target.checked; renderOrders(); loadHero(); }
 });
 $('oRows').addEventListener('click', async e => {
   if (e.target.dataset.file) openFile(e.target.dataset.file);
@@ -546,11 +756,11 @@ $('oRows').addEventListener('click', async e => {
   if (d && confirm('حذف الطلب نهائياً؟')){ const { error } = await sb.from('wa_orders').delete().eq('id', d); toast(error?'ما انحذف':'تم الحذف'); loadOrders(); }
 });
 $('oCsv').onclick = () => {
-  const head = ['الرقم','التاريخ','الوقت','الجوال','الوصف','المبلغ','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق'];
-  const rows = ORDERS.map(o => [o.code, fmtDate(o.created_at), fmtTime(o.created_at), o.phone, o.description, o.amount, o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status||'', o.verified?'نعم':'لا']);
+  const head = ['الرقم','تاريخ التسجيل','وقت التسجيل','تاريخ التسليم','الجوال','الوصف','المبلغ','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق'];
+  const rows = ORDERS.map(o => [o.code, fmtDate(o.created_at), fmtTime(o.created_at), o.delivery_date, o.phone, o.description, o.amount, o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا']);
   const csv = '\ufeff' + [head, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
-  a.download = `طلبات-الواتس-${$('oFrom').value}-${$('oTo').value}.csv`; a.click();
+  a.download = `طلبات-الواتس-${today()}.csv`; a.click();
 };
 
 /* ================== النشاط اليومي ================== */
@@ -559,11 +769,11 @@ async function loadDaily(){
   const day = $('dDay').value;
   const [{ data:row }, orders, { count:leadsN }] = await Promise.all([
     sb.from('wa_daily').select('*').eq('day', day).maybeSingle(),
-    fetchOrders(day, day),
+    fetchPaid(day, day),
     sb.from('wa_leads').select('id',{count:'exact',head:true}).gte('created_at', startISO(day)).lt('created_at', endISO(day))
   ]);
   const act = orders.filter(o=>o.status!=='ملغي');
-  stats('dAuto', [[act.length,'طلبات اليوم'],[money(act.reduce((s,o)=>s+Number(o.amount),0)),'مبلغ اليوم'],[leadsN||0,'عملاء محتملين']]);
+  stats('dAuto', [[act.length,'طلبات اليوم','blue'],[money(act.reduce((s,o)=>s+Number(o.amount),0)),'مبيعات اليوم','green'],[leadsN||0,'عملاء محتملين','rose']]);
   for (const id in DAILY_MAP) $(id).value = row ? row[DAILY_MAP[id]] : '';
   $('dNotes').value = row?.notes || '';
   $('dMsg').textContent = row ? `آخر تحديث: ${fmtDT(row.updated_at)}` : '';
@@ -622,13 +832,13 @@ $('cSave').onclick = async () => {
     const status = $('cStatus').value;
     const row = { order_code: arDigits($('cOrder').value.trim()).toUpperCase(), phone: normPhone($('cPhone').value)||null,
       received_at: new Date($('cReceived').value).toISOString(), ctype:$('cType').value, details,
-      action:$('cAction').value.trim()||null, responsible:$('cResp').value, status, notes:$('cNotes').value.trim()||null,
+      action:$('cAction').value.trim()||null, responsible:$('cResp').value||null, status, notes:$('cNotes').value.trim()||null,
       image_path, closed_at: status==='تم الحل' ? new Date().toISOString() : null };
     const { error } = await sb.from('wa_complaints').insert(row);
     if (error) throw error;
     toast('تم حفظ الشكوى');
     ['cOrder','cPhone','cDetails','cAction','cNotes','cImage'].forEach(id => $(id).value='');
-    $('cStatus').value='قيد المتابعة'; $('cResp').value='غير محدد';
+    $('cStatus').value='قيد المتابعة'; $('cResp').value='';
     loadComplaints();
   }catch(e){ msg('cMsg','ما انحفظت: '+(e.message||e)); }
   $('cSave').disabled = false;
@@ -645,14 +855,16 @@ async function loadComplaints(){
   $('cRows').innerHTML = list.length ? list.map((c,i) => `<tr>
     <td>${list.length-i}</td><td class="num">${fmtDT(c.received_at)}</td><td><b>${esc(c.order_code)}</b></td><td>${esc(c.ctype)}</td>
     <td class="desc">${esc(c.details)}${c.notes?`<br><small style="color:var(--muted)">${esc(c.notes)}</small>`:''}</td>
-    <td class="desc">${esc(c.action)}</td><td>${esc(c.responsible)}</td>
-    <td><select data-cstatus="${c.id}"><option ${c.status==='قيد المتابعة'?'selected':''}>قيد المتابعة</option><option ${c.status==='تم الحل'?'selected':''}>تم الحل</option></select></td>
+    <td class="desc">${esc(c.action)}</td><td><select data-cresp="${c.id}" class="${c.responsible?'':'stsel st-prep'}">${['','المندوب','التجهيز','خدمة العملاء','المورد','العميل','غير محدد'].map(r=>`<option value="${r}" ${r===(c.responsible||'')?'selected':''}>${r||'— لم يُحدد'}</option>`).join('')}</select></td>
+    <td><select class="stsel ${c.status==='تم الحل'?'st-done':'st-prep'}" data-cstatus="${c.id}"><option ${c.status==='قيد المتابعة'?'selected':''}>قيد المتابعة</option><option ${c.status==='تم الحل'?'selected':''}>تم الحل</option></select></td>
     <td>${c.image_path?`<a class="link" data-file="${esc(c.image_path)}">عرض</a>`:''}</td>
     ${isAdmin()?`<td><button class="btn ghost small" data-del-c="${c.id}">حذف</button></td>`:''}</tr>`).join('')
     : `<tr><td colspan="10" class="empty">ما فيه شكاوى في هذي الفترة.</td></tr>`;
 }
 ['cFrom','cTo'].forEach(id => $(id).onchange = loadComplaints);
 $('cRows').addEventListener('change', async e => {
+  const rid = e.target.dataset.cresp;
+  if (rid){ const { error } = await sb.from('wa_complaints').update({ responsible:e.target.value||null }).eq('id', rid); toast(error?'ما انحفظ':'تم تحديد المتسبب'); return loadComplaints(); }
   const id = e.target.dataset.cstatus; if (!id) return;
   const st = e.target.value;
   const { error } = await sb.from('wa_complaints').update({ status:st, closed_at: st==='تم الحل'?new Date().toISOString():null }).eq('id', id);
@@ -703,70 +915,104 @@ function setPeriod(p){
 $('rPeriod').onchange = () => { setPeriod($('rPeriod').value); loadReports(); };
 ['rFrom','rTo'].forEach(id => $(id).onchange = () => { $('rPeriod').value='custom'; loadReports(); });
 
-function breakdown(title, counts, sums){
+const PALETTE = ['#3B6FD8','#2E9D6A','#7B5BD6','#E08A1E','#D2465A','#1E9AA8','#C2549B','#6B7280'];
+const PAY_COLOR = { 'تحويل بنكي':'#3B6FD8', 'تابي':'#1E9A7A', 'تمارا':'#C2549B' };
+function breakdown(title, counts, sums, colors){
   const keys = Object.keys(counts).sort((a,b)=>(sums?sums[b]-sums[a]:counts[b]-counts[a]));
   const max = Math.max(1, ...keys.map(k => sums?sums[k]:counts[k]));
-  return `<section class="panel"><h3>${title}</h3>${keys.length?`<div class="tablewrap"><table><tbody>${keys.map(k=>`<tr><td>${esc(k)}</td><td class="num">${counts[k]}</td>${sums?`<td class="num"><b>${money(sums[k])}</b></td>`:''}<td style="width:35%"><div class="bar"><i style="width:${Math.round((sums?sums[k]:counts[k])/max*100)}%"></i></div></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">لا يوجد</div>'}</section>`;
+  return `<section class="panel"><h3>${title}</h3>${keys.length?`<div class="bd">${keys.map((k,i)=>{ const c=(colors&&colors[k])||PALETTE[i%PALETTE.length]; const v=sums?sums[k]:counts[k];
+    return `<div class="bd-row"><div class="bd-top"><span><i class="dot" style="background:${c}"></i>${esc(k)}</span><span class="num">${sums?`<b>${money(v)}</b> · ${counts[k]} طلب`:`<b>${v}</b>`}</span></div><div class="bar"><i style="width:${Math.max(3,Math.round(v/max*100))}%;background:${c}"></i></div></div>`; }).join('')}</div>`:'<div class="empty">لا يوجد</div>'}</section>`;
+}
+function donut(title, sums, colors, fmt=money, center='الإجمالي'){
+  const keys = Object.keys(sums).filter(k=>sums[k]>0).sort((a,b)=>sums[b]-sums[a]);
+  const total = keys.reduce((s,k)=>s+sums[k],0);
+  if (!total) return `<section class="panel"><h3>${title}</h3><div class="empty">لا يوجد</div></section>`;
+  let acc = 0; const segs = keys.map((k,i)=>{ const c=(colors&&colors[k])||PALETTE[i]; const a=acc/total*360; acc+=sums[k]; return `${c} ${a}deg ${acc/total*360}deg`; });
+  return `<section class="panel"><h3>${title}</h3><div class="donutwrap"><div class="donut" style="background:conic-gradient(${segs.join(',')})"><div><b>${fmt(total)}</b><span>${center}</span></div></div>
+    <ul class="legend">${keys.map((k,i)=>`<li><i class="dot" style="background:${(colors&&colors[k])||PALETTE[i]}"></i>${esc(k)}<b>${Math.round(sums[k]/total*100)}%</b><small>${fmt(sums[k])}</small></li>`).join('')}</ul></div></section>`;
+}
+function dayChart(days){
+  const keys = Object.keys(days); const max = Math.max(1, ...keys.map(k=>days[k].amt));
+  if (keys.length > 62) return '';
+  return `<section class="panel"><h3>المبيعات يومياً</h3><div class="chart">${keys.map(k=>`<div class="col" title="${k}: ${money(days[k].amt)} · ${days[k].n} طلب"><span class="cv">${days[k].amt?Math.round(days[k].amt).toLocaleString('en-US'):''}</span><i style="height:${Math.round(days[k].amt/max*100)}%"></i><span class="cl${keys.length>12 && +k.slice(8)%5 && k!==keys[0] && k!==keys[keys.length-1] ? ' sk':''}">${+k.slice(8)}</span></div>`).join('')}</div></section>`;
 }
 async function loadReports(){
   const from = $('rFrom').value, to = $('rTo').value;
   $('rOut').innerHTML = '<div class="empty">جاري التحميل…</div>';
-  const [orders, leads, complaints, { data:daily }] = await Promise.all([
-    fetchOrders(from, to), leadsWithConversion(from, to), fetchComplaints(from, to),
+  const [orders, paid, leads, complaints, { data:daily }] = await Promise.all([
+    fetchOrders(from, to), fetchPaid(from, to), leadsWithConversion(from, to), fetchComplaints(from, to),
     sb.from('wa_daily').select('*').gte('day', from).lte('day', to).order('day')
   ]);
-  const act = orders.filter(o=>o.status!=='ملغي'), cancelled = orders.length - act.length;
-  const total = act.reduce((s,o)=>s+Number(o.amount),0);
-  const unver = act.filter(o=>!o.verified).reduce((s,o)=>s+Number(o.amount),0);
+  const sum = a => a.reduce((s,o)=>s+Number(o.amount),0);
+  const paidLive = paid.filter(o=>o.status!=='ملغي');
+  const done = paidLive;   // المبيعات = كل طلب انحوّل مبلغه في الفترة
+  const delivered = orders.filter(o=>o.status==='تم التوصيل');
+  const pend = orders.filter(o=>OPEN_ST.includes(o.status));
+  const cancelled = paid.filter(o=>o.status==='ملغي').length;
+  const unver = paidLive.filter(o=>!o.verified);
+  const sales = sum(done);
   const D = (daily||[]).reduce((a,r)=>{ for(const k of ['stories','views','replies','inq_price','inq_avail','inq_delivery','inq_occasion','inq_other']) a[k]=(a[k]||0)+r[k]; return a; }, {});
   const inqTotal = (D.inq_price||0)+(D.inq_avail||0)+(D.inq_delivery||0)+(D.inq_occasion||0)+(D.inq_other||0);
   const conv = leads.filter(l=>l.converted).length;
-  const regionName = o => o.region==='أخرى' ? (o.region_other||'أخرى') : o.region;
-  const actR = act.map(o => ({...o, regionN: regionName(o)}));
+  const doneR = done.map(o => ({...o, regionN: o.region==='أخرى' ? (o.region_other||'أخرى') : o.region}));
   const solved = complaints.filter(c=>c.status==='تم الحل').length;
 
-  // الجدول اليومي — نفس شكل التقرير الورقي
   const days = {};
-  for (let d = new Date(from+'T00:00:00'); ymd(d) <= to; d.setDate(d.getDate()+1)) days[ymd(d)] = { n:0, amt:0, leads:0, dr:null };
-  act.forEach(o => { const k=fmtDate(o.created_at); if(days[k]){ days[k].n++; days[k].amt+=Number(o.amount); } });
-  leads.forEach(l => { const k=fmtDate(l.created_at); if(days[k]) days[k].leads++; });
+  for (let d = new Date(from+'T00:00:00'); ymd(d) <= to; d.setDate(d.getDate()+1)) days[ymd(d)] = { n:0, amt:0, reg:0, leads:0, dr:null };
+  done.forEach(o => { const x=days[fmtDate(o.created_at)]; if(x){ x.n++; x.amt+=Number(o.amount); } });
+  delivered.forEach(o => { const x=days[o.delivery_date]; if(x) x.reg++; });
+  leads.forEach(l => { const x=days[fmtDate(l.created_at)]; if(x) x.leads++; });
   (daily||[]).forEach(r => { if(days[r.day]) days[r.day].dr = r; });
-  const dayNames = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
   const dailyRows = Object.keys(days).reverse().map(k => { const x=days[k], r=x.dr; const inq = r ? r.inq_price+r.inq_avail+r.inq_delivery+r.inq_occasion+r.inq_other : 0;
     const top = r ? topKey({'السعر':r.inq_price,'التوفر':r.inq_avail,'التوصيل':r.inq_delivery,'المناسبات':r.inq_occasion,'أخرى':r.inq_other}) : '—';
-    return `<tr><td>${dayNames[new Date(k+'T00:00:00').getDay()]}</td><td class="num">${k}</td><td class="num">${x.n}</td><td class="num">${money(x.amt)}</td>
+    return `<tr><td><b>${WEEK[new Date(k+'T00:00:00').getDay()]}</b> <span class="num" style="color:var(--muted)">${k}</span></td><td class="num">${x.n}</td><td class="num"><b>${money(x.amt)}</b></td><td class="num">${x.reg}</td>
     <td class="num">${r?r.stories:'<span class="tag warn">لم يُسجل</span>'}</td><td class="num">${r?r.views:''}</td><td class="num">${r?r.replies:''}</td><td class="num">${x.leads}</td><td class="num">${r?inq:''}</td><td>${r&&inq?top:'—'}</td></tr>`; }).join('');
 
   $('rOut').innerHTML = `
     <div class="stats">
-      <div class="stat"><b>${act.length}</b><span>طلب</span></div>
-      <div class="stat"><b>${money(total)}</b><span>المبيعات</span></div>
-      <div class="stat"><b>${money(act.length?total/act.length:0)}</b><span>متوسط الطلب</span></div>
-      <div class="stat${unver>0?' alert':''}"><b>${money(unver)}</b><span>مبالغ بانتظار التحقق</span></div>
-      <div class="stat"><b>${cancelled}</b><span>طلب ملغي</span></div>
-      <div class="stat"><b>${leads.length?Math.round(conv/leads.length*100)+'%':'—'}</b><span>تحويل المحتملين (${conv} من ${leads.length})</span></div>
+      <div class="stat c-green"><b>${money(sales)}</b><span>المبيعات (حسب يوم التحويل)</span></div>
+      <div class="stat c-blue"><b>${done.length}</b><span>طلب</span></div>
+      <div class="stat c-violet"><b>${money(done.length?sales/done.length:0)}</b><span>متوسط الطلب</span></div>
+      <div class="stat c-teal"><b>${delivered.length}</b><span>طلب توصّل في الفترة</span></div>
+      <div class="stat c-amber"><b>${pend.length}</b><span>مجدول ولم يُسلّم (${money(sum(pend))})</span></div>
+      <div class="stat ${unver.length?'c-red':'c-teal'}"><b>${money(sum(unver))}</b><span>بانتظار التحقق (${unver.length})</span></div>
+      <div class="stat c-rose"><b>${leads.length?Math.round(conv/leads.length*100)+'%':'—'}</b><span>تحويل المحتملين (${conv} من ${leads.length})</span></div>
+      <div class="stat c-ink"><b>${cancelled}</b><span>طلب ملغي</span></div>
     </div>
+    ${dayChart(days)}
     <div class="two">
-      ${breakdown('حسب وسيلة الدفع', countBy(act,'payment'), sumBy(act,'payment','amount'))}
-      ${breakdown('حسب المنطقة', countBy(actR,'regionN'), sumBy(actR,'regionN','amount'))}
-      ${breakdown('حسب نوع الطلب', countBy(act,'order_type'), sumBy(act,'order_type','amount'))}
-      ${breakdown('مصدر العميل', countBy(act,'source'), sumBy(act,'source','amount'))}
+      ${donut('المبيعات حسب وسيلة الدفع', sumBy(done,'payment','amount'), PAY_COLOR)}
+      ${breakdown('حسب المنطقة', countBy(doneR,'regionN'), sumBy(doneR,'regionN','amount'))}
+      ${breakdown('حسب نوع الطلب', countBy(done,'order_type'), sumBy(done,'order_type','amount'))}
+      ${breakdown('مصدر العميل', countBy(done,'source'), sumBy(done,'source','amount'))}
     </div>
+    <h2 style="margin:8px 0 12px">التفاعل والاستفسارات</h2>
     <div class="stats">
-      <div class="stat"><b>${D.stories||0}</b><span>ستوري منشور</span></div>
-      <div class="stat"><b>${(D.views||0).toLocaleString('en-US')}</b><span>مشاهدة</span></div>
-      <div class="stat"><b>${D.replies||0}</b><span>رد على الستوري</span></div>
-      <div class="stat"><b>${inqTotal}</b><span>استفسار</span></div>
-      <div class="stat"><b>${complaints.length}</b><span>شكوى (${solved} تم حلها)</span></div>
+      <div class="stat c-violet"><b>${D.stories||0}</b><span>ستوري منشور</span></div>
+      <div class="stat c-blue"><b>${(D.views||0).toLocaleString('en-US')}</b><span>مشاهدة</span></div>
+      <div class="stat c-teal"><b>${D.replies||0}</b><span>رد على الستوري</span></div>
+      <div class="stat c-amber"><b>${inqTotal}</b><span>استفسار</span></div>
+      <div class="stat ${complaints.length-solved?'c-red':'c-green'}"><b>${complaints.length}</b><span>شكوى (${solved} تم حلها)</span></div>
     </div>
     <div class="two">
-      ${breakdown('الاستفسارات حسب النوع', Object.fromEntries(Object.entries({'السعر':D.inq_price||0,'التوفر':D.inq_avail||0,'التوصيل':D.inq_delivery||0,'المناسبات':D.inq_occasion||0,'أخرى':D.inq_other||0}).filter(e=>e[1]>0)))}
+      ${donut('الاستفسارات حسب النوع', Object.fromEntries(Object.entries({'السعر':D.inq_price||0,'التوفر':D.inq_avail||0,'التوصيل':D.inq_delivery||0,'المناسبات':D.inq_occasion||0,'أخرى':D.inq_other||0})), null, n=>n.toLocaleString('en-US'), 'استفسار')}
       ${breakdown('الشكاوى حسب النوع', countBy(complaints,'ctype'))}
-      ${breakdown('الشكاوى حسب المتسبب', countBy(complaints,'responsible'))}
+      ${breakdown('الشكاوى حسب المتسبب', countBy(complaints,c=>c.responsible||'لم يُحدد بعد'))}
       ${breakdown('المحتملين: استفسروا عن', countBy(leads,'interest'))}
     </div>
-    <section class="panel"><h3>التقرير اليومي</h3><div class="tablewrap"><table><thead><tr><th>اليوم</th><th>التاريخ</th><th>الطلبات</th><th>المبلغ</th><th>ستوري</th><th>مشاهدات</th><th>ردود</th><th>محتملين</th><th>استفسارات</th><th>أكثر استفسار</th></tr></thead><tbody>${dailyRows}</tbody></table></div></section>`;
+    <section class="panel"><h3>التقرير اليومي</h3><div class="tablewrap"><table><thead><tr><th>اليوم</th><th>الطلبات</th><th>المبيعات</th><th>توصيلات</th><th>ستوري</th><th>مشاهدات</th><th>ردود</th><th>محتملين</th><th>استفسارات</th><th>أكثر استفسار</th></tr></thead><tbody>${dailyRows}</tbody></table></div></section>`;
 }
+
+/* ================== جداول الجوال كبطاقات ================== */
+function labelize(){
+  document.querySelectorAll('.tablewrap table').forEach(t => {
+    const ths = [...t.querySelectorAll('thead th')].map(th => th.textContent.trim());
+    if (!ths.length) return;
+    t.classList.add('rt');
+    t.querySelectorAll('tbody tr').forEach(tr => [...tr.children].forEach((td,i) => { if (!td.hasAttribute('data-label')) td.setAttribute('data-label', ths[i]||''); }));
+  });
+}
+new MutationObserver(() => { clearTimeout(labelize._t); labelize._t = setTimeout(labelize, 30); }).observe(document.body, { childList:true, subtree:true });
 
 sb.auth.onAuthStateChange((ev) => { if (ev==='SIGNED_OUT') showLogin(); });
 boot();
