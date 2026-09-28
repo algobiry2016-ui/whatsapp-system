@@ -257,6 +257,10 @@ tr.late td{background:#FBF4F4}
 .rep-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:6px}
 h4.sec{font-size:.8rem;letter-spacing:.5px;color:var(--gold);margin:22px 0 10px;font-weight:700;display:flex;align-items:center;gap:10px}
 h4.sec::after{content:"";flex:1;height:1px;background:#E7DFD2}
+th,td{white-space:normal} td.num,th{white-space:nowrap} .tag,.pay,.stp,.stsel{white-space:nowrap}
+tfoot td{background:#F7F5F1;border-top:2px solid #E7DFD2;font-weight:700}
+tr.zero td{color:#BDB8B0}
+@media (max-width:720px){ table.rt tr.zero{display:none} table.rt tfoot{display:block} table.rt tfoot tr{display:block;background:var(--gold-s);border-radius:14px;padding:8px 14px} table.rt tfoot td{display:flex;justify-content:space-between;border:0;padding:4px 0;background:none} table.rt tfoot td:empty{display:none} }
 details.rep summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px}
 details.rep summary::-webkit-details-marker{display:none}
 details.rep summary h3{margin:0}
@@ -467,7 +471,22 @@ details.rep[open] summary{margin-bottom:12px}
 
 <!-- ============ التقارير ============ -->
 <div data-view="reports" class="hidden">
-  <div class="toolbar">
+  <div class="seg no-print" id="rMode">
+    <button data-m="day" class="on">تقرير يومي</button>
+    <button data-m="month">تقرير شهري</button>
+    <button data-m="analysis">تحليل مفصّل</button>
+  </div>
+  <div class="toolbar no-print mode-day">
+    <div class="field"><label for="rDay">اليوم</label><input type="date" id="rDay"></div>
+    <button class="btn ghost" id="rDayCsv">تنزيل Excel</button>
+    <button class="btn ghost" onclick="window.print()">طباعة / PDF</button>
+  </div>
+  <div class="toolbar no-print mode-month hidden">
+    <div class="field"><label for="rMonth">الشهر</label><input type="month" id="rMonth"></div>
+    <button class="btn ghost" id="rMonthCsv">تنزيل Excel</button>
+    <button class="btn ghost" onclick="window.print()">طباعة / PDF</button>
+  </div>
+  <div class="toolbar no-print mode-analysis hidden">
     <div class="field"><label for="rPeriod">الفترة</label><select id="rPeriod"><option value="today">اليوم</option><option value="week">آخر ٧ أيام</option><option value="month" selected>هذا الشهر</option><option value="lastmonth">الشهر الماضي</option><option value="custom">مخصص</option></select></div>
     <div class="field"><label for="rFrom">من</label><input type="date" id="rFrom"></div>
     <div class="field"><label for="rTo">إلى</label><input type="date" id="rTo"></div>
@@ -593,7 +612,7 @@ $('pwSave').onclick = async () => {
 };
 
 /* ================== التبويبات ================== */
-const loaders = { orders:loadOrders, daily:loadDaily, leads:loadLeads, complaints:loadComplaints, customers:loadCustomers, reports:loadReports };
+const loaders = { orders:loadOrders, daily:loadDaily, leads:loadLeads, complaints:loadComplaints, customers:loadCustomers, reports:loadReportTab };
 function showTab(t){
   document.querySelectorAll('#tabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab===t); if (b.dataset.tab===t) $('curTab').textContent = b.textContent; });
   closeMenu();
@@ -607,7 +626,7 @@ function initDates(){
   const t = today();
   ['oFrom','oTo','leFrom','leTo','cFrom','cTo','dDay','oDate'].forEach(id => $(id).value = t); dateHint();
   const d = new Date(); $('cReceived').value = `${t}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  setPeriod('month');
+  setPeriod('month'); $('rDay').value = t; $('rMonth').value = t.slice(0,7);
 }
 
 /* ================== الطلبات ================== */
@@ -1105,13 +1124,84 @@ function exportCSV(list, name){
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download = name; a.click();
 }
 
+
+/* ================== التقرير اليومي والشهري ================== */
+let RMODE = 'day', RDATA = [];
+$('rMode').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  RMODE = b.dataset.m;
+  document.querySelectorAll('#rMode button').forEach(x => x.classList.toggle('on', x===b));
+  ['day','month','analysis'].forEach(m => document.querySelector('.mode-'+m).classList.toggle('hidden', m!==RMODE));
+  loadReportTab();
+};
+function loadReportTab(){ return RMODE==='day' ? loadDayReport() : RMODE==='month' ? loadMonthReport() : loadReports(); }
+$('rDay').onchange = loadDayReport;
+$('rMonth').onchange = loadMonthReport;
+const regName = o => o.region==='أخرى' ? (o.region_other||'أخرى') : o.region;
+const PAYS = ['تحويل بنكي','تابي','تمارا'], REGS = ['أبها','خميس مشيط','أخرى'];
+function sumCards(list){
+  const s = a => a.reduce((t,o)=>t+Number(o.amount),0);
+  const by = (k,v) => s(list.filter(o=>o[k]===v));
+  return `<div class="stats">
+    <div class="stat c-ink"><b>${money(s(list))}</b><span>إجمالي المبيعات</span></div>
+    <div class="stat c-gold"><b>${list.length}</b><span>عدد الطلبات</span></div>
+    <div class="stat c-sage"><b>${money(list.length?s(list)/list.length:0)}</b><span>متوسط الطلب</span></div>
+    ${PAYS.map((p,i)=>`<div class="stat ${['c-ink','c-sage','c-gold'][i]}"><b>${money(by('payment',p))}</b><span>${p} (${list.filter(o=>o.payment===p).length})</span></div>`).join('')}
+    ${['أبها','خميس مشيط'].map(g=>`<div class="stat c-slate"><b>${list.filter(o=>o.region===g).length}</b><span>طلبات ${g} · ${money(by('region',g))}</span></div>`).join('')}
+    ${isAdmin()?`<div class="stat ${list.some(o=>!o.verified)?'c-alert':'c-sage'}"><b>${list.filter(o=>!o.verified).length}</b><span>بانتظار التحقق (${money(s(list.filter(o=>!o.verified)))})</span></div>`:''}
+  </div>`;
+}
+async function loadDayReport(){
+  const day = $('rDay').value;
+  $('rOut').innerHTML = '<div class="empty">جاري تجهيز التقرير…</div>';
+  const all = await fetchPaid(day, day);
+  const list = all.filter(o=>o.status!=='ملغي').sort((a,b)=>a.created_at<b.created_at?-1:1);
+  const cancelled = all.filter(o=>o.status==='ملغي');
+  RDATA = list;
+  const total = list.reduce((t,o)=>t+Number(o.amount),0);
+  $('rOut').innerHTML = `
+    <div class="rep-head"><div><h2>تقرير الطلبات اليومي</h2><p class="sub">${WEEK[new Date(day+'T00:00:00').getDay()]} ${day} · طلبات الواتس المحوّلة في هذا اليوم</p></div></div>
+    ${sumCards(list)}
+    <section class="panel"><div class="tablewrap"><table><thead><tr><th>#</th><th>الرقم</th><th>الوقت</th><th>التسليم</th><th>الجوال</th><th>الوصف</th><th>المبلغ</th><th>الدفع</th><th>المنطقة</th><th>النوع</th><th>الحالة</th><th>التحقق</th></tr></thead><tbody>
+    ${list.length ? list.map((o,i)=>`<tr><td>${i+1}</td><td><b>${o.code}</b></td><td class="num">${fmtTime(o.created_at)}</td><td>${o.delivery_date===day?'نفس اليوم':`<span class="tag violet">${dayLabel(o.delivery_date)}</span>`}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td><span class="pay pay-${{'تمارا':'tm','تابي':'tb','تحويل بنكي':'bk'}[o.payment]}">${esc(o.payment)}</span></td><td>${esc(regName(o))}</td><td>${esc(o.order_type)}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'<span class="stp st-done">تم</span>':'<span class="stp st-prep">بانتظار</span>'}</td></tr>`).join('')
+      : `<tr><td colspan="12" class="empty">ما فيه طلبات في هذا اليوم.</td></tr>`}
+    </tbody>${list.length?`<tfoot><tr><td colspan="6" data-label=""><b>الإجمالي (${list.length} طلب)</b></td><td class="num" data-label="المبلغ"><b>${money(total)}</b></td><td colspan="5" data-label=""></td></tr></tfoot>`:''}</table></div></section>
+    ${cancelled.length?`<p class="sub">ملغي في هذا اليوم: ${cancelled.map(o=>o.code).join('، ')} (غير محسوب في المبيعات)</p>`:''}`;
+}
+async function loadMonthReport(){
+  const m = $('rMonth').value; if (!m) return;
+  const [y, mo] = m.split('-').map(Number);
+  const from = `${m}-01`, to = ymd(new Date(y, mo, 0));
+  $('rOut').innerHTML = '<div class="empty">جاري تجهيز التقرير…</div>';
+  const all = await fetchPaid(from, to);
+  const list = all.filter(o=>o.status!=='ملغي');
+  RDATA = list;
+  const days = {};
+  for (let d = new Date(from+'T00:00:00'); ymd(d) <= to; d.setDate(d.getDate()+1)) days[ymd(d)] = [];
+  list.forEach(o => { const k = fmtDate(o.created_at); if (days[k]) days[k].push(o); });
+  const s = a => a.reduce((t,o)=>t+Number(o.amount),0);
+  const cell = (a, k, v) => { const x = a.filter(o=>o[k]===v); return x.length ? money(s(x)) : '—'; };
+  const rows = Object.keys(days).map(k => { const a = days[k];
+    return `<tr class="${a.length?'':'zero'}"><td><b>${WEEK[new Date(k+'T00:00:00').getDay()]}</b> <span class="num muted">${k.slice(8)}/${k.slice(5,7)}</span></td><td class="num">${a.length||'—'}</td><td class="num"><b>${a.length?money(s(a)):'—'}</b></td>${PAYS.map(p=>`<td class="num">${cell(a,'payment',p)}</td>`).join('')}<td class="num">${a.filter(o=>o.region==='أبها').length||'—'}</td><td class="num">${a.filter(o=>o.region==='خميس مشيط').length||'—'}</td><td class="num">${a.filter(o=>o.region==='أخرى').length||'—'}</td></tr>`; }).join('');
+  const best = Object.keys(days).sort((a,b)=>s(days[b])-s(days[a]))[0];
+  $('rOut').innerHTML = `
+    <div class="rep-head"><div><h2>التقرير الشهري</h2><p class="sub">${m} · من ${from} إلى ${to}${list.length?` · أعلى يوم: ${WEEK[new Date(best+'T00:00:00').getDay()]} ${best.slice(8)} (${money(s(days[best]))})`:''}</p></div></div>
+    ${sumCards(list)}
+    <section class="panel"><h3>ملخص الأيام</h3><div class="tablewrap"><table><thead><tr><th>اليوم</th><th>الطلبات</th><th>المبيعات</th><th>تحويل بنكي</th><th>تابي</th><th>تمارا</th><th>أبها</th><th>خميس مشيط</th><th>أخرى</th></tr></thead><tbody>${rows}</tbody>
+    <tfoot><tr><td><b>الإجمالي</b></td><td class="num"><b>${list.length}</b></td><td class="num"><b>${money(s(list))}</b></td>${PAYS.map(p=>`<td class="num"><b>${cell(list,'payment',p)}</b></td>`).join('')}${REGS.map(g=>`<td class="num"><b>${list.filter(o=>o.region===g).length}</b></td>`).join('')}</tr></tfoot></table></div></section>
+    ${table('كل طلبات الشهر', ['الرقم','التاريخ','التسليم','الجوال','الوصف','المبلغ','الدفع','المنطقة','الحالة','التحقق'],
+      list.sort((a,b)=>a.created_at<b.created_at?-1:1).map(o=>`<tr><td><b>${o.code}</b></td><td class="num">${fmtDate(o.created_at)}</td><td>${o.delivery_date}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(o.payment)}</td><td>${esc(regName(o))}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'تم':'بانتظار'}</td></tr>`))}`;
+}
+$('rDayCsv').onclick = () => exportCSV(RDATA, `تقرير-يومي-${$('rDay').value}.csv`);
+$('rMonthCsv').onclick = () => exportCSV(RDATA, `تقرير-شهري-${$('rMonth').value}.csv`);
+
 /* ================== جداول الجوال كبطاقات ================== */
 function labelize(){
   document.querySelectorAll('.tablewrap table').forEach(t => {
     const ths = [...t.querySelectorAll('thead th')].map(th => th.textContent.trim());
     if (!ths.length) return;
     t.classList.add('rt');
-    t.querySelectorAll('tbody tr').forEach(tr => [...tr.children].forEach((td,i) => { if (!td.hasAttribute('data-label')) td.setAttribute('data-label', ths[i]||''); }));
+    t.querySelectorAll('tbody tr, tfoot tr').forEach(tr => [...tr.children].forEach((td,i) => { if (!td.hasAttribute('data-label')) td.setAttribute('data-label', ths[i]||''); }));
   });
 }
 new MutationObserver(() => { clearTimeout(labelize._t); labelize._t = setTimeout(labelize, 30); }).observe(document.body, { childList:true, subtree:true });
