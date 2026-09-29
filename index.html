@@ -258,6 +258,9 @@ tr.late td{background:#FBF4F4}
 h4.sec{font-size:.8rem;letter-spacing:.5px;color:var(--gold);margin:22px 0 10px;font-weight:700;display:flex;align-items:center;gap:10px}
 h4.sec::after{content:"";flex:1;height:1px;background:#E7DFD2}
 th,td{white-space:normal} td.num,th{white-space:nowrap} .tag,.pay,.stp,.stsel{white-space:nowrap}
+.respin{width:100%;min-width:130px;border:1px dashed #D9CFBF;border-radius:8px;padding:5px 9px;background:#FFFDF9;font:inherit}
+.respin:not(:placeholder-shown){border-style:solid;border-color:var(--line);background:#fff}
+.respin:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-s)}
 tfoot td{background:#F7F5F1;border-top:2px solid #E7DFD2;font-weight:700}
 tr.zero td{color:#BDB8B0}
 @media (max-width:720px){ table.rt tr.zero{display:none} table.rt tfoot{display:block} table.rt tfoot tr{display:block;background:var(--gold-s);border-radius:14px;padding:8px 14px} table.rt tfoot td{display:flex;justify-content:space-between;border:0;padding:4px 0;background:none} table.rt tfoot td:empty{display:none} }
@@ -441,7 +444,7 @@ details.rep[open] summary{margin-bottom:12px}
       <div class="field"><label for="cType">نوع الشكوى</label><select id="cType"><option>تأخير</option><option>جودة الورد</option><option>اختلاف عن الصورة</option><option>تلف أثناء التوصيل</option><option>خطأ في العنوان</option><option>تعامل المندوب</option><option>أخرى</option></select></div>
       <div class="field wide"><label for="cDetails">تفاصيل الشكوى</label><textarea id="cDetails"></textarea></div>
       <div class="field wide"><label for="cAction">الإجراء المتخذ</label><input id="cAction" placeholder="مثال: استبدال الباقة / تعويض / اعتذار"></div>
-      <div class="field"><label for="cResp">المتسبب</label><select id="cResp"><option value="">— يُحدد لاحقاً</option><option>المندوب</option><option>التجهيز</option><option>خدمة العملاء</option><option>المورد</option><option>العميل</option></select></div>
+      <div class="field"><label for="cResp">المتسبب</label><input id="cResp" placeholder="اتركيه فاضي وحدديه بعدين"></div>
       <div class="field"><label for="cStatus">حالة الشكوى</label><select id="cStatus"><option>قيد المتابعة</option><option>تم الحل</option></select></div>
       <div class="field"><label for="cImage">صورة <span class="opt">(اختياري)</span></label><input id="cImage" type="file" accept="image/*"></div>
       <div class="field wide"><label for="cNotes">ملاحظات <span class="opt">(اختياري)</span></label><input id="cNotes"></div>
@@ -882,7 +885,7 @@ $('cSave').onclick = async () => {
     const status = $('cStatus').value;
     const row = { order_code: arDigits($('cOrder').value.trim()).toUpperCase(), phone: normPhone($('cPhone').value)||null,
       received_at: new Date($('cReceived').value).toISOString(), ctype:$('cType').value, details,
-      action:$('cAction').value.trim()||null, responsible:$('cResp').value||null, status, notes:$('cNotes').value.trim()||null,
+      action:$('cAction').value.trim()||null, responsible:$('cResp').value.trim()||null, status, notes:$('cNotes').value.trim()||null,
       image_path, closed_at: status==='تم الحل' ? new Date().toISOString() : null };
     const { error } = await sb.from('wa_complaints').insert(row);
     if (error) throw error;
@@ -905,7 +908,7 @@ async function loadComplaints(){
   $('cRows').innerHTML = list.length ? list.map((c,i) => `<tr>
     <td>${list.length-i}</td><td class="num">${fmtDT(c.received_at)}</td><td><b>${esc(c.order_code)}</b></td><td>${esc(c.ctype)}</td>
     <td class="desc">${esc(c.details)}${c.notes?`<br><small style="color:var(--muted)">${esc(c.notes)}</small>`:''}</td>
-    <td class="desc">${esc(c.action)}</td><td><select data-cresp="${c.id}" class="${c.responsible?'':'stsel st-prep'}">${['','المندوب','التجهيز','خدمة العملاء','المورد','العميل','غير محدد'].map(r=>`<option value="${r}" ${r===(c.responsible||'')?'selected':''}>${r||'— لم يُحدد'}</option>`).join('')}</select></td>
+    <td class="desc">${esc(c.action)}</td><td><input class="respin" data-cresp="${c.id}" value="${esc(c.responsible||'')}" placeholder="اكتبي المتسبب…"></td>
     <td><select class="stsel ${c.status==='تم الحل'?'st-done':'st-prep'}" data-cstatus="${c.id}"><option ${c.status==='قيد المتابعة'?'selected':''}>قيد المتابعة</option><option ${c.status==='تم الحل'?'selected':''}>تم الحل</option></select></td>
     <td>${c.image_path?`<a class="link" data-file="${esc(c.image_path)}">عرض</a>`:''}</td>
     ${isAdmin()?`<td><button class="btn ghost small" data-del-c="${c.id}">حذف</button></td>`:''}</tr>`).join('')
@@ -914,7 +917,7 @@ async function loadComplaints(){
 ['cFrom','cTo'].forEach(id => $(id).onchange = loadComplaints);
 $('cRows').addEventListener('change', async e => {
   const rid = e.target.dataset.cresp;
-  if (rid){ const { error } = await sb.from('wa_complaints').update({ responsible:e.target.value||null }).eq('id', rid); toast(error?'ما انحفظ':'تم تحديد المتسبب'); return loadComplaints(); }
+  if (rid){ const { error } = await sb.from('wa_complaints').update({ responsible:e.target.value.trim()||null }).eq('id', rid); toast(error?'ما انحفظ':'تم تحديد المتسبب'); return loadComplaints(); }
   const id = e.target.dataset.cstatus; if (!id) return;
   const st = e.target.value;
   const { error } = await sb.from('wa_complaints').update({ status:st, closed_at: st==='تم الحل'?new Date().toISOString():null }).eq('id', id);
