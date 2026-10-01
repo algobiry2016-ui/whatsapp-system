@@ -130,6 +130,9 @@ h3{font-size:1rem;margin:0 0 10px;color:var(--plum)}
 .login .mark{font-family:"Reem Kufi",sans-serif;font-size:2rem;color:var(--plum);text-align:center;margin-bottom:4px}
 .login p{text-align:center;color:var(--muted);margin-top:0}
 
+dialog#editDlg{border:1px solid var(--line);border-radius:18px;padding:22px;width:min(720px,94vw);max-height:90vh;overflow:auto}
+dialog#editDlg::backdrop{background:rgba(0,0,0,.35)}
+.rowbtns{display:inline-flex;gap:6px}
 dialog#iosDlg{border:1px solid var(--line);border-radius:var(--r-lg);padding:20px;width:min(360px,92vw)}
 dialog#iosDlg::backdrop{background:rgba(0,0,0,.35)}
 dialog#pwDlg{border:1px solid var(--line);border-radius:var(--r-lg);padding:20px;width:min(360px,92vw)}
@@ -341,17 +344,17 @@ details.rep[open] summary{margin-bottom:12px}
           <input type="radio" name="pay" id="p3" value="تمارا"><label for="p3">تمارا</label>
         </div>
       </div>
-      <div class="field wide"><label>المنطقة</label>
-        <div class="chips" id="oRegion">
-          <input type="radio" name="reg" id="r1" value="أبها"><label for="r1">أبها</label>
-          <input type="radio" name="reg" id="r2" value="خميس مشيط"><label for="r2">خميس مشيط</label>
-          <input type="radio" name="reg" id="r3" value="أخرى"><label for="r3">أخرى</label>
-        </div>
-      </div>
       <div class="field wide"><label>طريقة التسليم</label>
         <div class="chips" id="oFul">
           <input type="radio" name="ful" id="f1" value="توصيل" checked><label for="f1">توصيل</label>
           <input type="radio" name="ful" id="f2" value="استلام"><label for="f2">استلام من المحل</label>
+        </div>
+      </div>
+      <div class="field wide" id="oRegionWrap"><label>منطقة التوصيل</label>
+        <div class="chips" id="oRegion">
+          <input type="radio" name="reg" id="r1" value="أبها"><label for="r1">أبها</label>
+          <input type="radio" name="reg" id="r2" value="خميس مشيط"><label for="r2">خميس مشيط</label>
+          <input type="radio" name="reg" id="r3" value="أخرى"><label for="r3">أخرى</label>
         </div>
       </div>
       <div class="field hidden" id="oRegionOtherWrap"><label for="oRegionOther">اسم المنطقة</label><input id="oRegionOther"></div>
@@ -517,6 +520,27 @@ details.rep[open] summary{margin-bottom:12px}
   <p class="msg" id="pwMsg"></p>
 </dialog>
 
+<dialog id="editDlg">
+  <h2>تعديل الطلب <span id="eCode"></span></h2>
+  <p class="sub" id="eMeta"></p>
+  <div class="grid">
+    <div class="field"><label for="ePhone">جوال العميل</label><input id="ePhone" inputmode="tel"></div>
+    <div class="field"><label for="eAmount">المبلغ</label><input id="eAmount" inputmode="decimal"></div>
+    <div class="field wide"><label for="eDesc">وصف الطلب</label><input id="eDesc"></div>
+    <div class="field"><label for="ePay">وسيلة الدفع</label><select id="ePay"><option>تحويل بنكي</option><option>تابي</option><option>تمارا</option></select></div>
+    <div class="field"><label for="eTxn">رقم العملية</label><input id="eTxn"></div>
+    <div class="field"><label for="eFul">طريقة التسليم</label><select id="eFul"><option>توصيل</option><option>استلام</option></select></div>
+    <div class="field" id="eRegWrap"><label for="eReg">منطقة التوصيل</label><select id="eReg"><option>أبها</option><option>خميس مشيط</option><option>أخرى</option></select></div>
+    <div class="field" id="eRegOtherWrap"><label for="eRegOther">اسم المنطقة</label><input id="eRegOther"></div>
+    <div class="field"><label for="eDate">تاريخ التسليم</label><input id="eDate" type="date"></div>
+    <div class="field"><label for="eType">نوع الطلب</label><select id="eType"><option>عادي</option><option>مناسبة / حفلة</option><option>مسكة عروس</option></select></div>
+    <div class="field"><label for="eSource">العميل</label><select id="eSource"><option value="">—</option><option>عميل جديد</option><option>عميل سابق</option><option>توصية</option><option>ستوري</option><option>إعلان</option></select></div>
+    <div class="field"><label for="eStatus">الحالة</label><select id="eStatus"><option>قيد التجهيز</option><option>تم التجهيز</option><option>تم التوصيل</option><option>تم الاستلام</option><option>ملغي</option></select></div>
+    <div class="field"><label for="eReceipt">استبدال صورة التحويل <span class="opt">(اختياري)</span></label><input id="eReceipt" type="file" accept="image/*,application/pdf"></div>
+  </div>
+  <div class="actions"><button class="btn" id="eSave">حفظ التعديل</button><button class="btn ghost" id="eCancel">إلغاء</button><span class="msg" id="eMsg"></span></div>
+</dialog>
+
 <dialog id="iosDlg">
   <h2>تثبيت التطبيق على الآيفون</h2>
   <ol id="iosSteps" style="padding-inline-start:20px;line-height:2"></ol>
@@ -530,6 +554,7 @@ details.rep[open] summary{margin-bottom:12px}
 const SUPABASE_URL = 'https://eolnpozfksejyfkdcpuz.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_1Lcx6NE0zKb-xrvH1K4cYA_DeJCaJd7';   // نفس مفتاح نظام المشتريات
 
+const PICKUP_REGION = 'أبها';   // منطقة المحل — طلبات الاستلام تنحفظ عليها
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth:{ storageKey:'dm-whatsapp-auth' } });  // جلسة مستقلة عن نظام المشتريات
 const $ = id => document.getElementById(id);
 let ME = { email:'', name:'', role:'' };
@@ -661,6 +686,8 @@ document.querySelectorAll('input[name="ful"]').forEach(r => r.onchange = () => {
   const pick = radioVal('ful')==='استلام';
   [...$('oStatus').options].forEach(op => { if (op.value==='تم التوصيل') op.hidden = pick; if (op.value==='تم الاستلام') op.hidden = !pick; });
   if ($('oStatus').selectedOptions[0].hidden) $('oStatus').value = 'قيد التجهيز';
+  $('oRegionWrap').classList.toggle('hidden', pick);
+  if (pick) $('oRegionOtherWrap').classList.add('hidden'); else $('oRegionOtherWrap').classList.toggle('hidden', radioVal('reg')!=='أخرى');
 });
 document.querySelectorAll('input[name="reg"]').forEach(r => r.onchange = () => $('oRegionOtherWrap').classList.toggle('hidden', radioVal('reg')!=='أخرى'));
 function dateHint(){ const d = $('oDate').value; $('oDateHint').textContent = !d ? '' : d < today() ? `${dayLabel(d)} — تاريخ فات، تأكدي` : d===today() ? 'اليوم' : `${dayLabel(d)} · طلب مجدول`; $('oDateHint').classList.toggle('warn', !!d && d < today()); }
@@ -669,20 +696,21 @@ function deliveryDate(){ return $('oDate').value; }
 
 $('oSave').onclick = async () => {
   const phone = normPhone($('oPhone').value), amount = num($('oAmount').value), desc = $('oDesc').value.trim();
-  const payment = radioVal('pay'), region = radioVal('reg'), delivery_date = deliveryDate();
+  const ful = radioVal('ful')||'توصيل', pick = ful==='استلام';
+  const payment = radioVal('pay'), region = pick ? PICKUP_REGION : radioVal('reg'), delivery_date = deliveryDate();
   if (phone.length < 9) return msg('oMsg','رقم الجوال ناقص');
   if (!desc) return msg('oMsg','اكتبي وصف الطلب');
   if (amount === null || amount <= 0) return msg('oMsg','اكتبي مبلغ الطلب');
   if (!payment) return msg('oMsg','اختاري وسيلة الدفع');
   if (!region) return msg('oMsg','اختاري المنطقة');
-  if (region==='أخرى' && !$('oRegionOther').value.trim()) return msg('oMsg','اكتبي اسم المنطقة');
+  if (!pick && region==='أخرى' && !$('oRegionOther').value.trim()) return msg('oMsg','اكتبي اسم المنطقة');
   if (!delivery_date) return msg('oMsg','اختاري تاريخ التسليم');
   $('oSave').disabled = true;
   try{
     const receipt_path = payment==='تحويل بنكي' ? await upload($('oReceipt').files[0], 'receipts') : null;
     const row = { phone, amount, description:desc, payment, region, delivery_date,
-      region_other: region==='أخرى' ? $('oRegionOther').value.trim() : null,
-      fulfillment: radioVal('ful')||'توصيل', order_type:$('oType').value, source:$('oSource').value||null, status:$('oStatus').value,
+      region_other: !pick && region==='أخرى' ? $('oRegionOther').value.trim() : null,
+      fulfillment: ful, order_type:$('oType').value, source:$('oSource').value||null, status:$('oStatus').value,
       txn_ref: payment!=='تحويل بنكي' ? ($('oTxn').value.trim()||null) : null, receipt_path };
     const { data, error } = await sb.from('wa_orders').insert(row).select('code').single();
     if (error) throw error;
@@ -692,7 +720,7 @@ $('oSave').onclick = async () => {
     document.querySelectorAll('input[name="pay"],input[name="reg"]').forEach(r => r.checked=false);
     $('oDate').value = today(); dateHint();
     ['oReceiptWrap','oTxnWrap','oRegionOtherWrap'].forEach(id => $(id).classList.add('hidden'));
-    $('f1').checked = true; $('oType').value='عادي'; $('oSource').value=''; $('oStatus').value='قيد التجهيز';
+    $('f1').checked = true; $('f1').onchange(); $('oType').value='عادي'; $('oSource').value=''; $('oStatus').value='قيد التجهيز';
     loadOrders();
   }catch(e){ msg('oMsg','ما انحفظ الطلب: '+(e.message||e)); }
   $('oSave').disabled = false;
@@ -790,11 +818,11 @@ function renderOrders(){
     <td class="desc">${esc(o.description)}${o.source?` <span class="tag rose">${esc(o.source)}</span>`:''}</td>
     <td class="num"><b>${money(o.amount)}</b></td>
     <td><span class="pay pay-${{'تمارا':'tm','تابي':'tb','تحويل بنكي':'bk'}[o.payment]}">${esc(o.payment)}</span></td>
-    <td>${esc(o.region==='أخرى' ? (o.region_other||'أخرى') : o.region)}</td>
+    <td>${o.fulfillment==='استلام' ? '<span class="muted">من المحل</span>' : esc(o.region==='أخرى' ? (o.region_other||'أخرى') : o.region)}</td>
     <td><select class="stsel ${ST_CLASS[o.status]||''}" data-status="${o.id}">${Object.keys(ST_CLASS).filter(s=>s===o.status || s!==(o.fulfillment==='استلام'?'تم التوصيل':'تم الاستلام')).map(s=>`<option ${s===o.status?'selected':''}>${s}</option>`).join('')}</select></td>
     <td>${o.receipt_path ? `<a class="link" data-file="${esc(o.receipt_path)}">الإيصال</a>` : (o.txn_ref ? esc(o.txn_ref) : '<span class="tag warn">لا يوجد</span>')}</td>
     <td>${isAdmin() ? `<label class="vchk"><input type="checkbox" data-verify="${o.id}" ${o.verified?'checked':''}> ${o.verified?'تم':'تحقق'}</label>` : (o.verified?'<span class="tag">تم</span>':'<span class="tag warn">بانتظار</span>')}</td>
-    ${isAdmin()?`<td><button class="btn ghost small" data-del-order="${o.id}">حذف</button></td>`:''}
+    ${isAdmin()?`<td><span class="rowbtns"><button class="btn ghost small" data-edit-order="${o.id}">تعديل</button><button class="btn ghost small" data-del-order="${o.id}">حذف</button></span></td>`:''}
   </tr>`).join('') : `<tr><td colspan="11" class="empty">${{reg:'ما انسجلت طلبات اليوم لين الحين.',today:'ما فيه طلبات للتسليم اليوم.',pending:'كل الطلبات تسلّمت 👌',upcoming:'ما فيه طلبات مجدولة للأيام الجاية.',range:'ما فيه طلبات في هذي الفترة.'}[OVIEW]}</td></tr>`;
 }
 $('oView').onclick = e => {
@@ -819,6 +847,7 @@ $('oRows').addEventListener('change', async e => {
 });
 $('oRows').addEventListener('click', async e => {
   if (e.target.dataset.file) openFile(e.target.dataset.file);
+  if (e.target.dataset.editOrder) openEdit(e.target.dataset.editOrder);
   const d = e.target.dataset.delOrder;
   if (d && confirm('حذف الطلب نهائياً؟')){ const { error } = await sb.from('wa_orders').delete().eq('id', d); toast(error?'ما انحذف':'تم الحذف'); loadOrders(); }
 });
@@ -828,6 +857,54 @@ $('oCsv').onclick = () => {
   const csv = '\ufeff' + [head, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
   a.download = `طلبات-الواتس-${today()}.csv`; a.click();
+};
+
+
+/* ================== تعديل الطلب (الأدمن) ================== */
+let EDIT = null;
+function eSync(){
+  const pick = $('eFul').value==='استلام';
+  $('eRegWrap').classList.toggle('hidden', pick);
+  $('eRegOtherWrap').classList.toggle('hidden', pick || $('eReg').value!=='أخرى');
+}
+$('eFul').onchange = eSync; $('eReg').onchange = eSync;
+function openEdit(id){
+  const o = ORDERS.find(x => x.id==id); if (!o) return;
+  EDIT = o;
+  $('eCode').textContent = o.code;
+  $('eMeta').textContent = `سُجّل ${fmtDT(o.created_at)}`;
+  $('ePhone').value = o.phone; $('eAmount').value = o.amount; $('eDesc').value = o.description;
+  $('ePay').value = o.payment; $('eTxn').value = o.txn_ref||'';
+  $('eFul').value = o.fulfillment||'توصيل'; $('eReg').value = o.region; $('eRegOther').value = o.region_other||'';
+  $('eDate').value = o.delivery_date; $('eType').value = o.order_type; $('eSource').value = o.source||''; $('eStatus').value = o.status;
+  $('eReceipt').value = ''; $('eMsg').textContent = '';
+  eSync(); $('editDlg').showModal();
+}
+$('eCancel').onclick = () => $('editDlg').close();
+$('eSave').onclick = async () => {
+  const phone = normPhone($('ePhone').value), amount = num($('eAmount').value), desc = $('eDesc').value.trim();
+  const pick = $('eFul').value==='استلام';
+  if (phone.length < 9) return msg('eMsg','رقم الجوال ناقص');
+  if (!desc) return msg('eMsg','وصف الطلب فاضي');
+  if (amount === null || amount <= 0) return msg('eMsg','المبلغ غير صحيح');
+  if (!pick && $('eReg').value==='أخرى' && !$('eRegOther').value.trim()) return msg('eMsg','اكتب اسم المنطقة');
+  if (!$('eDate').value) return msg('eMsg','اختر تاريخ التسليم');
+  let st = $('eStatus').value;
+  if (pick && st==='تم التوصيل') st = 'تم الاستلام';
+  if (!pick && st==='تم الاستلام') st = 'تم التوصيل';
+  $('eSave').disabled = true;
+  try{
+    const upd = { phone, amount, description:desc, payment:$('ePay').value, txn_ref:$('eTxn').value.trim()||null,
+      fulfillment:$('eFul').value, region: pick ? PICKUP_REGION : $('eReg').value,
+      region_other: !pick && $('eReg').value==='أخرى' ? $('eRegOther').value.trim() : null,
+      delivery_date:$('eDate').value, order_type:$('eType').value, source:$('eSource').value||null, status:st };
+    const f = $('eReceipt').files[0];
+    if (f) upd.receipt_path = await upload(f, 'receipts');
+    const { error } = await sb.from('wa_orders').update(upd).eq('id', EDIT.id);
+    if (error) throw error;
+    $('editDlg').close(); toast(`تم تعديل ${EDIT.code}`); loadOrders();
+  }catch(e){ msg('eMsg','ما انحفظ: '+(e.message||e)); }
+  $('eSave').disabled = false;
 };
 
 /* ================== النشاط اليومي ================== */
