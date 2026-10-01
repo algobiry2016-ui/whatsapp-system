@@ -261,6 +261,7 @@ th,td{white-space:normal} td.num,th{white-space:nowrap} .tag,.pay,.stp,.stsel{wh
 .respin{width:100%;min-width:130px;border:1px dashed #D9CFBF;border-radius:8px;padding:5px 9px;background:#FFFDF9;font:inherit}
 .respin:not(:placeholder-shown){border-style:solid;border-color:var(--line);background:#fff}
 .respin:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-s)}
+.tag.pick{background:#1C1C1C;color:#fff}
 tfoot td{background:#F7F5F1;border-top:2px solid #E7DFD2;font-weight:700}
 tr.zero td{color:#BDB8B0}
 @media (max-width:720px){ table.rt tr.zero{display:none} table.rt tfoot{display:block} table.rt tfoot tr{display:block;background:var(--gold-s);border-radius:14px;padding:8px 14px} table.rt tfoot td{display:flex;justify-content:space-between;border:0;padding:4px 0;background:none} table.rt tfoot td:empty{display:none} }
@@ -347,6 +348,12 @@ details.rep[open] summary{margin-bottom:12px}
           <input type="radio" name="reg" id="r3" value="أخرى"><label for="r3">أخرى</label>
         </div>
       </div>
+      <div class="field wide"><label>طريقة التسليم</label>
+        <div class="chips" id="oFul">
+          <input type="radio" name="ful" id="f1" value="توصيل" checked><label for="f1">توصيل</label>
+          <input type="radio" name="ful" id="f2" value="استلام"><label for="f2">استلام من المحل</label>
+        </div>
+      </div>
       <div class="field hidden" id="oRegionOtherWrap"><label for="oRegionOther">اسم المنطقة</label><input id="oRegionOther"></div>
       <div class="field"><label for="oDate">تاريخ التسليم</label><input id="oDate" type="date"><small class="hint" id="oDateHint">اليوم</small></div>
       <div class="field hidden" id="oReceiptWrap"><label for="oReceipt">صورة التحويل <span class="opt">(اختياري)</span></label><input id="oReceipt" type="file" accept="image/*,application/pdf"></div>
@@ -357,7 +364,7 @@ details.rep[open] summary{margin-bottom:12px}
       <div class="grid">
         <div class="field"><label for="oType">نوع الطلب</label><select id="oType"><option>عادي</option><option>مناسبة / حفلة</option><option>مسكة عروس</option></select></div>
         <div class="field"><label for="oSource">العميل</label><select id="oSource"><option value="">—</option><option>عميل جديد</option><option>عميل سابق</option><option>توصية</option><option>ستوري</option><option>إعلان</option></select></div>
-        <div class="field"><label for="oStatus">الحالة</label><select id="oStatus"><option>قيد التجهيز</option><option>تم التجهيز</option><option>تم التوصيل</option></select></div>
+        <div class="field"><label for="oStatus">الحالة</label><select id="oStatus"><option>قيد التجهيز</option><option>تم التجهيز</option><option>تم التوصيل</option><option>تم الاستلام</option></select></div>
       </div>
     </details>
     <div class="actions"><button class="btn" id="oSave">حفظ الطلب</button><span class="msg" id="oMsg"></span></div>
@@ -642,12 +649,18 @@ function dayLabel(day){
   if (day===addDays(-1)) return 'أمس';
   return `${WEEK[new Date(day+'T00:00:00').getDay()]} ${day.slice(5).replace('-','/')}`;
 }
-const ST_CLASS = { 'قيد التجهيز':'st-prep', 'تم التجهيز':'st-ready', 'تم التوصيل':'st-done', 'ملغي':'st-cancel' };
+const ST_CLASS = { 'قيد التجهيز':'st-prep', 'تم التجهيز':'st-ready', 'تم التوصيل':'st-done', 'تم الاستلام':'st-done', 'ملغي':'st-cancel' };
+const DONE_ST = ['تم التوصيل','تم الاستلام'];
 const OPEN_ST = ['قيد التجهيز','تم التجهيز'];
 document.querySelectorAll('input[name="pay"]').forEach(r => r.onchange = () => {
   const v = radioVal('pay');
   $('oReceiptWrap').classList.toggle('hidden', v!=='تحويل بنكي');
   $('oTxnWrap').classList.toggle('hidden', v==='تحويل بنكي' || !v);
+});
+document.querySelectorAll('input[name="ful"]').forEach(r => r.onchange = () => {
+  const pick = radioVal('ful')==='استلام';
+  [...$('oStatus').options].forEach(op => { if (op.value==='تم التوصيل') op.hidden = pick; if (op.value==='تم الاستلام') op.hidden = !pick; });
+  if ($('oStatus').selectedOptions[0].hidden) $('oStatus').value = 'قيد التجهيز';
 });
 document.querySelectorAll('input[name="reg"]').forEach(r => r.onchange = () => $('oRegionOtherWrap').classList.toggle('hidden', radioVal('reg')!=='أخرى'));
 function dateHint(){ const d = $('oDate').value; $('oDateHint').textContent = !d ? '' : d < today() ? `${dayLabel(d)} — تاريخ فات، تأكدي` : d===today() ? 'اليوم' : `${dayLabel(d)} · طلب مجدول`; $('oDateHint').classList.toggle('warn', !!d && d < today()); }
@@ -669,7 +682,7 @@ $('oSave').onclick = async () => {
     const receipt_path = payment==='تحويل بنكي' ? await upload($('oReceipt').files[0], 'receipts') : null;
     const row = { phone, amount, description:desc, payment, region, delivery_date,
       region_other: region==='أخرى' ? $('oRegionOther').value.trim() : null,
-      order_type:$('oType').value, source:$('oSource').value||null, status:$('oStatus').value,
+      fulfillment: radioVal('ful')||'توصيل', order_type:$('oType').value, source:$('oSource').value||null, status:$('oStatus').value,
       txn_ref: payment!=='تحويل بنكي' ? ($('oTxn').value.trim()||null) : null, receipt_path };
     const { data, error } = await sb.from('wa_orders').insert(row).select('code').single();
     if (error) throw error;
@@ -679,7 +692,7 @@ $('oSave').onclick = async () => {
     document.querySelectorAll('input[name="pay"],input[name="reg"]').forEach(r => r.checked=false);
     $('oDate').value = today(); dateHint();
     ['oReceiptWrap','oTxnWrap','oRegionOtherWrap'].forEach(id => $(id).classList.add('hidden'));
-    $('oType').value='عادي'; $('oSource').value=''; $('oStatus').value='قيد التجهيز';
+    $('f1').checked = true; $('oType').value='عادي'; $('oSource').value=''; $('oStatus').value='قيد التجهيز';
     loadOrders();
   }catch(e){ msg('oMsg','ما انحفظ الطلب: '+(e.message||e)); }
   $('oSave').disabled = false;
@@ -732,7 +745,7 @@ async function loadHero(){
 /* ================== التنبيهات ================== */
 async function loadAlerts(){
   const t = today(), lim = addDays(2);
-  const { data } = await sb.from('wa_orders').select('id,code,phone,description,order_type,status,delivery_date,created_at').in('status', OPEN_ST).lte('delivery_date', lim).order('delivery_date').limit(200);
+  const { data } = await sb.from('wa_orders').select('id,code,phone,description,order_type,status,delivery_date,created_at,fulfillment').in('status', OPEN_ST).lte('delivery_date', lim).order('delivery_date').limit(200);
   // المجدولة فقط: موعد تسليمها بعد يوم تسجيلها
   const list = (data||[]).filter(o => o.delivery_date > fmtDate(o.created_at));
   if (!list.length){ $('alerts').classList.add('hidden'); return; }
@@ -746,7 +759,8 @@ async function loadAlerts(){
   $('alList').innerHTML = list.map(o => {
     const d = o.delivery_date, isLate = d < t, ready = o.status==='تم التجهيز';
     const when = isLate ? `متأخر (${dayLabel(d)})` : dayLabel(d);
-    const todo = isLate ? 'موعده فات! تأكدي من التسليم' : d===t ? (ready ? 'جاهز — لازم يتسلم اليوم' : 'لازم يتجهز ويتسلم اليوم') : (ready ? 'جاهز للتسليم' : `لازم يتجهز لـ${dayLabel(d)}`);
+    const pick = o.fulfillment==='استلام';
+    const todo = isLate ? (pick ? 'موعد استلامه فات! تواصلي مع العميل' : 'موعده فات! تأكدي من التسليم') : d===t ? (pick ? (ready ? 'جاهز — العميل بيستلمه اليوم' : 'لازم يتجهز — العميل بيستلمه اليوم') : (ready ? 'جاهز — لازم يتوصّل اليوم' : 'لازم يتجهز ويتوصّل اليوم')) : (ready ? (pick ? 'جاهز للاستلام' : 'جاهز للتوصيل') : `لازم يتجهز لـ${dayLabel(d)}${pick?' (استلام)':''}`);
     return `<li class="${isLate?'late':''}" data-go="${o.code}"><span class="when">${when}</span>${o.order_type!=='عادي'?`<span class="kind">${esc(o.order_type)}</span>`:''}<span class="what">${esc(o.description)}</span><span>${o.code} · ${esc(o.phone)}</span><span class="todo">${todo}</span></li>`;
   }).join('');
   $('alerts').classList.remove('hidden');
@@ -771,13 +785,13 @@ function renderOrders(){
   const t = today();
   $('oRows').innerHTML = list.length ? list.map(o => `<tr class="${OPEN_ST.includes(o.status) && o.delivery_date < t ? 'late' : ''}">
     <td><b>${o.code}</b>${o.order_type!=='عادي'?` <span class="tag violet">${esc(o.order_type)}</span>`:''}</td>
-    <td><span class="tag ${o.delivery_date===t?'blue':o.delivery_date>t?'violet':''}">${dayLabel(o.delivery_date)}</span></td>
+    <td><span class="tag ${o.delivery_date===t?'blue':o.delivery_date>t?'violet':''}">${dayLabel(o.delivery_date)}</span>${o.fulfillment==='استلام'?' <span class="tag pick">استلام</span>':''}</td>
     <td class="num"><a class="link" href="https://wa.me/966${esc(o.phone.replace(/^0/,''))}" target="_blank" rel="noopener">${esc(o.phone)}</a></td>
     <td class="desc">${esc(o.description)}${o.source?` <span class="tag rose">${esc(o.source)}</span>`:''}</td>
     <td class="num"><b>${money(o.amount)}</b></td>
     <td><span class="pay pay-${{'تمارا':'tm','تابي':'tb','تحويل بنكي':'bk'}[o.payment]}">${esc(o.payment)}</span></td>
     <td>${esc(o.region==='أخرى' ? (o.region_other||'أخرى') : o.region)}</td>
-    <td><select class="stsel ${ST_CLASS[o.status]||''}" data-status="${o.id}">${Object.keys(ST_CLASS).map(s=>`<option ${s===o.status?'selected':''}>${s}</option>`).join('')}</select></td>
+    <td><select class="stsel ${ST_CLASS[o.status]||''}" data-status="${o.id}">${Object.keys(ST_CLASS).filter(s=>s===o.status || s!==(o.fulfillment==='استلام'?'تم التوصيل':'تم الاستلام')).map(s=>`<option ${s===o.status?'selected':''}>${s}</option>`).join('')}</select></td>
     <td>${o.receipt_path ? `<a class="link" data-file="${esc(o.receipt_path)}">الإيصال</a>` : (o.txn_ref ? esc(o.txn_ref) : '<span class="tag warn">لا يوجد</span>')}</td>
     <td>${isAdmin() ? `<label class="vchk"><input type="checkbox" data-verify="${o.id}" ${o.verified?'checked':''}> ${o.verified?'تم':'تحقق'}</label>` : (o.verified?'<span class="tag">تم</span>':'<span class="tag warn">بانتظار</span>')}</td>
     ${isAdmin()?`<td><button class="btn ghost small" data-del-order="${o.id}">حذف</button></td>`:''}
@@ -798,7 +812,7 @@ $('oRows').addEventListener('change', async e => {
     const st = e.target.value, o = ORDERS.find(o=>o.id==s);
     const { error } = await sb.from('wa_orders').update({ status:st }).eq('id', s);
     if (error) toast('ما انحفظت الحالة');
-    else { o.status = st; toast(st==='تم التوصيل' ? `تم توصيل ${o.code} ✓` : st==='تم التجهيز' ? `${o.code} جاهز للتسليم` : 'تم تحديث الحالة'); }
+    else { o.status = st; toast(st==='تم التوصيل' ? `تم توصيل ${o.code} ✓` : st==='تم الاستلام' ? `العميل استلم ${o.code} ✓` : st==='تم التجهيز' ? `${o.code} جاهز للتسليم` : 'تم تحديث الحالة'); }
     renderOrders(); loadHero(); loadAlerts();
   }
   if (v){ const { error } = await sb.from('wa_orders').update({ verified:e.target.checked }).eq('id', v); toast(error?'ما انحفظ التحقق':(e.target.checked?'تم التحقق من المبلغ':'أُلغي التحقق')); if(!error) ORDERS.find(o=>o.id==v).verified = e.target.checked; renderOrders(); loadHero(); }
@@ -809,8 +823,8 @@ $('oRows').addEventListener('click', async e => {
   if (d && confirm('حذف الطلب نهائياً؟')){ const { error } = await sb.from('wa_orders').delete().eq('id', d); toast(error?'ما انحذف':'تم الحذف'); loadOrders(); }
 });
 $('oCsv').onclick = () => {
-  const head = ['الرقم','تاريخ التسجيل','وقت التسجيل','تاريخ التسليم','الجوال','الوصف','المبلغ','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق'];
-  const rows = ORDERS.map(o => [o.code, fmtDate(o.created_at), fmtTime(o.created_at), o.delivery_date, o.phone, o.description, o.amount, o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا']);
+  const head = ['الرقم','تاريخ التسجيل','وقت التسجيل','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق'];
+  const rows = ORDERS.map(o => [o.code, fmtDate(o.created_at), fmtTime(o.created_at), o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا']);
   const csv = '\ufeff' + [head, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
   a.download = `طلبات-الواتس-${today()}.csv`; a.click();
@@ -1016,10 +1030,10 @@ async function loadReports(){
   const aov = live.length ? sales/live.length : 0, prevAov = prevLive.length ? sum(prevLive)/prevLive.length : 0;
   const unver = live.filter(o=>!o.verified);
   const scheduled = live.filter(o => o.delivery_date > fmtDate(o.created_at));
-  const delivered = sched.filter(o=>o.status==='تم التوصيل');
+  const delivered = sched.filter(o=>DONE_ST.includes(o.status));
   const open = sched.filter(o=>OPEN_ST.includes(o.status));
   const regN = o => o.region==='أخرى' ? (o.region_other||'أخرى') : o.region;
-  const liveR = live.map(o => ({...o, regionN: regN(o), emp: nameOf(o.created_by)}));
+  const liveR = live.filter(o=>o.fulfillment!=='استلام').map(o => ({...o, regionN: regN(o), emp: nameOf(o.created_by)}));
   const D = (daily||[]).reduce((a,r)=>{ for(const k of ['stories','views','replies','inq_price','inq_avail','inq_delivery','inq_occasion','inq_other']) a[k]=(a[k]||0)+r[k]; return a; }, {});
   const inqTotal = (D.inq_price||0)+(D.inq_avail||0)+(D.inq_delivery||0)+(D.inq_occasion||0)+(D.inq_other||0);
   const conv = leads.filter(l=>l.converted).length;
@@ -1069,7 +1083,8 @@ async function loadReports(){
     ${colChart('المبيعات اليومية', dk.map(k=>+k.slice(8)), dk.map(k=>days[k].amt), i=>`${dk[i]}: ${money(days[dk[i]].amt)} · ${days[dk[i]].n} طلب`, i=>dk.length>12 && (+dk[i].slice(8))%5 && i && i<dk.length-1)}
     <div class="two">
       ${donut('حسب وسيلة الدفع', sumBy(live,'payment','amount'), PAY_COLOR)}
-      ${breakdown('حسب المنطقة', countBy(liveR,'regionN'), sumBy(liveR,'regionN','amount'))}
+      ${breakdown('التوصيل حسب المنطقة', countBy(liveR,'regionN'), sumBy(liveR,'regionN','amount'))}
+      ${breakdown('توصيل / استلام', countBy(live,o=>o.fulfillment||'توصيل'), sumBy(live.map(o=>({...o,ful:o.fulfillment||'توصيل'})),'ful','amount'))}
       ${breakdown('حسب نوع الطلب', countBy(live,'order_type'), sumBy(live,'order_type','amount'))}
       ${breakdown('حسب مصدر العميل', countBy(live,'source'), sumBy(live,'source','amount'))}
       ${breakdown('حسب الموظف المسجِّل', countBy(liveR,'emp'), sumBy(liveR,'emp','amount'))}
@@ -1079,7 +1094,7 @@ async function loadReports(){
 
     <h4 class="sec">التشغيل والتوصيل</h4>
     <div class="stats">
-      <div class="stat c-sage"><b>${delivered.length}</b><span>توصّل في الفترة</span></div>
+      <div class="stat c-sage"><b>${delivered.length}</b><span>تسلّم في الفترة (توصيل أو استلام)</span></div>
       <div class="stat c-gold"><b>${open.length}</b><span>مواعيدها في الفترة ولم تُسلّم</span></div>
       <div class="stat c-slate"><b>${stCount['تم التجهيز']||0}</b><span>جاهزة بانتظار التسليم</span></div>
       <div class="stat c-clay"><b>${sched.filter(o=>OPEN_ST.includes(o.status) && o.delivery_date<today()).length}</b><span>متأخرة عن موعدها</span></div>
@@ -1112,7 +1127,7 @@ async function loadReports(){
     </div>
 
     <h4 class="sec">التفاصيل</h4>
-    ${table('التقرير اليومي', ['اليوم','الطلبات','المبيعات','متوسط الطلب','توصيلات','ستوري','مشاهدات','ردود','محتملين','استفسارات','أكثر استفسار'], dailyRows, true)}
+    ${table('التقرير اليومي', ['اليوم','الطلبات','المبيعات','متوسط الطلب','تسليمات','ستوري','مشاهدات','ردود','محتملين','استفسارات','أكثر استفسار'], dailyRows, true)}
     ${table('كل الطلبات', ['الرقم','التسجيل','التسليم','الجوال','الوصف','المبلغ','الدفع','المنطقة','النوع','الحالة','تحقق','سجّلها'], orderRows)}
     ${isAdmin()?table('مبالغ بانتظار التحقق', ['الرقم','التاريخ','الجوال','المبلغ','الدفع','الإثبات'], unverRows):''}
     ${table('أفضل ١٠ عملاء في الفترة', ['#','الجوال','الطلبات','الإجمالي','المتوسط'], topRows)}
@@ -1121,8 +1136,8 @@ async function loadReports(){
   $('rCsv').onclick = () => exportCSV(REP_ORDERS, `تقرير-الواتس-${from}-${to}.csv`);
 }
 function exportCSV(list, name){
-  const head = ['الرقم','تاريخ التسجيل','وقت التسجيل','تاريخ التسليم','الجوال','الوصف','المبلغ','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق'];
-  const rows = list.map(o => [o.code, fmtDate(o.created_at), fmtTime(o.created_at), o.delivery_date, o.phone, o.description, o.amount, o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا']);
+  const head = ['الرقم','تاريخ التسجيل','وقت التسجيل','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق'];
+  const rows = list.map(o => [o.code, fmtDate(o.created_at), fmtTime(o.created_at), o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا']);
   const csv = '\ufeff' + [head, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download = name; a.click();
 }
@@ -1150,7 +1165,8 @@ function sumCards(list){
     <div class="stat c-gold"><b>${list.length}</b><span>عدد الطلبات</span></div>
     <div class="stat c-sage"><b>${money(list.length?s(list)/list.length:0)}</b><span>متوسط الطلب</span></div>
     ${PAYS.map((p,i)=>`<div class="stat ${['c-ink','c-sage','c-gold'][i]}"><b>${money(by('payment',p))}</b><span>${p} (${list.filter(o=>o.payment===p).length})</span></div>`).join('')}
-    ${['أبها','خميس مشيط'].map(g=>`<div class="stat c-slate"><b>${list.filter(o=>o.region===g).length}</b><span>طلبات ${g} · ${money(by('region',g))}</span></div>`).join('')}
+    ${['أبها','خميس مشيط'].map(g=>`<div class="stat c-slate"><b>${list.filter(o=>o.region===g && o.fulfillment!=='استلام').length}</b><span>توصيل ${g}</span></div>`).join('')}
+    <div class="stat c-clay"><b>${list.filter(o=>o.fulfillment==='استلام').length}</b><span>استلام من المحل</span></div>
     ${isAdmin()?`<div class="stat ${list.some(o=>!o.verified)?'c-alert':'c-sage'}"><b>${list.filter(o=>!o.verified).length}</b><span>بانتظار التحقق (${money(s(list.filter(o=>!o.verified)))})</span></div>`:''}
   </div>`;
 }
@@ -1166,7 +1182,7 @@ async function loadDayReport(){
     <div class="rep-head"><div><h2>تقرير الطلبات اليومي</h2><p class="sub">${WEEK[new Date(day+'T00:00:00').getDay()]} ${day} · طلبات الواتس المحوّلة في هذا اليوم</p></div></div>
     ${sumCards(list)}
     <section class="panel"><div class="tablewrap"><table><thead><tr><th>#</th><th>الرقم</th><th>الوقت</th><th>التسليم</th><th>الجوال</th><th>الوصف</th><th>المبلغ</th><th>الدفع</th><th>المنطقة</th><th>النوع</th><th>الحالة</th><th>التحقق</th></tr></thead><tbody>
-    ${list.length ? list.map((o,i)=>`<tr><td>${i+1}</td><td><b>${o.code}</b></td><td class="num">${fmtTime(o.created_at)}</td><td>${o.delivery_date===day?'نفس اليوم':`<span class="tag violet">${dayLabel(o.delivery_date)}</span>`}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td><span class="pay pay-${{'تمارا':'tm','تابي':'tb','تحويل بنكي':'bk'}[o.payment]}">${esc(o.payment)}</span></td><td>${esc(regName(o))}</td><td>${esc(o.order_type)}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'<span class="stp st-done">تم</span>':'<span class="stp st-prep">بانتظار</span>'}</td></tr>`).join('')
+    ${list.length ? list.map((o,i)=>`<tr><td>${i+1}</td><td><b>${o.code}</b></td><td class="num">${fmtTime(o.created_at)}</td><td>${o.delivery_date===day?'نفس اليوم':`<span class="tag violet">${dayLabel(o.delivery_date)}</span>`}${o.fulfillment==='استلام'?' <span class="tag pick">استلام</span>':''}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td><span class="pay pay-${{'تمارا':'tm','تابي':'tb','تحويل بنكي':'bk'}[o.payment]}">${esc(o.payment)}</span></td><td>${esc(regName(o))}</td><td>${esc(o.order_type)}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'<span class="stp st-done">تم</span>':'<span class="stp st-prep">بانتظار</span>'}</td></tr>`).join('')
       : `<tr><td colspan="12" class="empty">ما فيه طلبات في هذا اليوم.</td></tr>`}
     </tbody>${list.length?`<tfoot><tr><td colspan="6" data-label=""><b>الإجمالي (${list.length} طلب)</b></td><td class="num" data-label="المبلغ"><b>${money(total)}</b></td><td colspan="5" data-label=""></td></tr></tfoot>`:''}</table></div></section>
     ${cancelled.length?`<p class="sub">ملغي في هذا اليوم: ${cancelled.map(o=>o.code).join('، ')} (غير محسوب في المبيعات)</p>`:''}`;
@@ -1185,13 +1201,13 @@ async function loadMonthReport(){
   const s = a => a.reduce((t,o)=>t+Number(o.amount),0);
   const cell = (a, k, v) => { const x = a.filter(o=>o[k]===v); return x.length ? money(s(x)) : '—'; };
   const rows = Object.keys(days).map(k => { const a = days[k];
-    return `<tr class="${a.length?'':'zero'}"><td><b>${WEEK[new Date(k+'T00:00:00').getDay()]}</b> <span class="num muted">${k.slice(8)}/${k.slice(5,7)}</span></td><td class="num">${a.length||'—'}</td><td class="num"><b>${a.length?money(s(a)):'—'}</b></td>${PAYS.map(p=>`<td class="num">${cell(a,'payment',p)}</td>`).join('')}<td class="num">${a.filter(o=>o.region==='أبها').length||'—'}</td><td class="num">${a.filter(o=>o.region==='خميس مشيط').length||'—'}</td><td class="num">${a.filter(o=>o.region==='أخرى').length||'—'}</td></tr>`; }).join('');
+    return `<tr class="${a.length?'':'zero'}"><td><b>${WEEK[new Date(k+'T00:00:00').getDay()]}</b> <span class="num muted">${k.slice(8)}/${k.slice(5,7)}</span></td><td class="num">${a.length||'—'}</td><td class="num"><b>${a.length?money(s(a)):'—'}</b></td>${PAYS.map(p=>`<td class="num">${cell(a,'payment',p)}</td>`).join('')}${REGS.map(g=>`<td class="num">${a.filter(o=>o.region===g && o.fulfillment!=='استلام').length||'—'}</td>`).join('')}<td class="num">${a.filter(o=>o.fulfillment==='استلام').length||'—'}</td></tr>`; }).join('');
   const best = Object.keys(days).sort((a,b)=>s(days[b])-s(days[a]))[0];
   $('rOut').innerHTML = `
     <div class="rep-head"><div><h2>التقرير الشهري</h2><p class="sub">${m} · من ${from} إلى ${to}${list.length?` · أعلى يوم: ${WEEK[new Date(best+'T00:00:00').getDay()]} ${best.slice(8)} (${money(s(days[best]))})`:''}</p></div></div>
     ${sumCards(list)}
-    <section class="panel"><h3>ملخص الأيام</h3><div class="tablewrap"><table><thead><tr><th>اليوم</th><th>الطلبات</th><th>المبيعات</th><th>تحويل بنكي</th><th>تابي</th><th>تمارا</th><th>أبها</th><th>خميس مشيط</th><th>أخرى</th></tr></thead><tbody>${rows}</tbody>
-    <tfoot><tr><td><b>الإجمالي</b></td><td class="num"><b>${list.length}</b></td><td class="num"><b>${money(s(list))}</b></td>${PAYS.map(p=>`<td class="num"><b>${cell(list,'payment',p)}</b></td>`).join('')}${REGS.map(g=>`<td class="num"><b>${list.filter(o=>o.region===g).length}</b></td>`).join('')}</tr></tfoot></table></div></section>
+    <section class="panel"><h3>ملخص الأيام</h3><div class="tablewrap"><table><thead><tr><th>اليوم</th><th>الطلبات</th><th>المبيعات</th><th>تحويل بنكي</th><th>تابي</th><th>تمارا</th><th>توصيل أبها</th><th>توصيل خميس مشيط</th><th>توصيل أخرى</th><th>استلام</th></tr></thead><tbody>${rows}</tbody>
+    <tfoot><tr><td><b>الإجمالي</b></td><td class="num"><b>${list.length}</b></td><td class="num"><b>${money(s(list))}</b></td>${PAYS.map(p=>`<td class="num"><b>${cell(list,'payment',p)}</b></td>`).join('')}${REGS.map(g=>`<td class="num"><b>${list.filter(o=>o.region===g && o.fulfillment!=='استلام').length}</b></td>`).join('')}<td class="num"><b>${list.filter(o=>o.fulfillment==='استلام').length}</b></td></tr></tfoot></table></div></section>
     ${table('كل طلبات الشهر', ['الرقم','التاريخ','التسليم','الجوال','الوصف','المبلغ','الدفع','المنطقة','الحالة','التحقق'],
       list.sort((a,b)=>a.created_at<b.created_at?-1:1).map(o=>`<tr><td><b>${o.code}</b></td><td class="num">${fmtDate(o.created_at)}</td><td>${o.delivery_date}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(o.payment)}</td><td>${esc(regName(o))}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'تم':'بانتظار'}</td></tr>`))}`;
 }
