@@ -265,6 +265,7 @@ th,td{white-space:normal} td.num,th{white-space:nowrap} .tag,.pay,.stp,.stsel{wh
 .respin:not(:placeholder-shown){border-style:solid;border-color:var(--line);background:#fff}
 .respin:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-s)}
 .tag.pick{background:#1C1C1C;color:#fff}
+.badge{display:inline-block;min-width:18px;padding:0 6px;border-radius:10px;background:var(--alert);color:#fff;font-size:.72rem;font-weight:700;margin-inline-start:4px;line-height:18px;text-align:center}
 tfoot td{background:#F7F5F1;border-top:2px solid #E7DFD2;font-weight:700}
 tr.zero td{color:#BDB8B0}
 @media (max-width:720px){ table.rt tr.zero{display:none} table.rt tfoot{display:block} table.rt tfoot tr{display:block;background:var(--gold-s);border-radius:14px;padding:8px 14px} table.rt tfoot td{display:flex;justify-content:space-between;border:0;padding:4px 0;background:none} table.rt tfoot td:empty{display:none} }
@@ -313,6 +314,7 @@ details.rep[open] summary{margin-bottom:12px}
     <button data-tab="complaints">الشكاوى</button>
     <button data-tab="customers">العملاء</button>
     <button data-tab="reports">التقارير</button>
+    <button data-tab="approvals" class="adm">الاعتماد <span class="badge hidden" id="apBadge">0</span></button>
     <div class="menuExtra">
       <button data-act="installBtn" class="hidden" id="mInstall">تثبيت التطبيق</button>
       <button data-act="pwBtn">تغيير كلمة المرور</button>
@@ -358,6 +360,7 @@ details.rep[open] summary{margin-bottom:12px}
         </div>
       </div>
       <div class="field hidden" id="oRegionOtherWrap"><label for="oRegionOther">اسم المنطقة</label><input id="oRegionOther"></div>
+      <div class="field"><label for="oPaid">تاريخ التحويل</label><input id="oPaid" type="date"><small class="hint" id="oPaidHint">اليوم</small></div>
       <div class="field"><label for="oDate">تاريخ التسليم</label><input id="oDate" type="date"><small class="hint" id="oDateHint">اليوم</small></div>
       <div class="field hidden" id="oReceiptWrap"><label for="oReceipt">صورة التحويل <span class="opt">(اختياري)</span></label><input id="oReceipt" type="file" accept="image/*,application/pdf"></div>
       <div class="field hidden" id="oTxnWrap"><label for="oTxn">رقم العملية <span class="opt">(اختياري)</span></label><input id="oTxn"></div>
@@ -471,6 +474,21 @@ details.rep[open] summary{margin-bottom:12px}
   </section>
 </div>
 
+<!-- ============ الاعتماد (الأدمن) ============ -->
+<div data-view="approvals" class="hidden">
+  <section class="panel">
+    <h2>طلبات بانتظار الاعتماد</h2>
+    <p class="sub">طلبات سجّلتها الموظفة بتاريخ تحويل سابق. ما تنحسب في المبيعات لين تعتمدها، وبعد الاعتماد تنحسب في يوم التحويل.</p>
+    <div class="stats" id="apStats"></div>
+    <div class="tablewrap"><table><thead><tr><th>الرقم</th><th>تاريخ التحويل</th><th>وقت التسجيل</th><th>سجّلته</th><th>الجوال</th><th>الوصف</th><th>المبلغ</th><th>الدفع</th><th>الإثبات</th><th></th></tr></thead><tbody id="apRows"></tbody></table></div>
+  </section>
+  <section class="panel"><details class="rep"><summary><h3>آخر قرارات الاعتماد</h3></summary>
+    <div class="tablewrap"><table><thead><tr><th>الرقم</th><th>تاريخ التحويل</th><th>المبلغ</th><th>القرار</th><th>بواسطة</th><th>الوقت</th></tr></thead><tbody id="apDone"></tbody></table></div></details></section>
+  <section class="panel"><details class="rep"><summary><h3>سجل التعديلات (آخر ١٥٠)</h3></summary>
+    <p class="sub">كل إضافة أو تعديل أو حذف على الطلبات والشكاوى، ومين سوّاه. ما ينمسح.</p>
+    <div class="tablewrap"><table><thead><tr><th>الوقت</th><th>مين</th><th>السجل</th><th>وش تغيّر</th></tr></thead><tbody id="auRows"></tbody></table></div></details></section>
+</div>
+
 <!-- ============ العملاء ============ -->
 <div data-view="customers" class="hidden">
   <section class="panel">
@@ -532,6 +550,7 @@ details.rep[open] summary{margin-bottom:12px}
     <div class="field"><label for="eFul">طريقة التسليم</label><select id="eFul"><option>توصيل</option><option>استلام</option></select></div>
     <div class="field" id="eRegWrap"><label for="eReg">منطقة التوصيل</label><select id="eReg"><option>أبها</option><option>خميس مشيط</option><option>أخرى</option></select></div>
     <div class="field" id="eRegOtherWrap"><label for="eRegOther">اسم المنطقة</label><input id="eRegOther"></div>
+    <div class="field"><label for="ePaid">تاريخ التحويل</label><input id="ePaid" type="date"></div>
     <div class="field"><label for="eDate">تاريخ التسليم</label><input id="eDate" type="date"></div>
     <div class="field"><label for="eType">نوع الطلب</label><select id="eType"><option>عادي</option><option>مناسبة / حفلة</option><option>مسكة عروس</option></select></div>
     <div class="field"><label for="eSource">العميل</label><select id="eSource"><option value="">—</option><option>عميل جديد</option><option>عميل سابق</option><option>توصية</option><option>ستوري</option><option>إعلان</option></select></div>
@@ -647,7 +666,7 @@ $('pwSave').onclick = async () => {
 };
 
 /* ================== التبويبات ================== */
-const loaders = { orders:loadOrders, daily:loadDaily, leads:loadLeads, complaints:loadComplaints, customers:loadCustomers, reports:loadReportTab };
+const loaders = { orders:loadOrders, daily:loadDaily, leads:loadLeads, complaints:loadComplaints, customers:loadCustomers, reports:loadReportTab, approvals:loadApprovals };
 function showTab(t){
   document.querySelectorAll('#tabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab===t); if (b.dataset.tab===t) $('curTab').textContent = b.textContent; });
   closeMenu();
@@ -659,7 +678,9 @@ $('menuBtn').onclick = () => { const o = $('tabs').classList.toggle('open'); $('
 $('tabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.act){ closeMenu(); $(b.dataset.act).click(); } else showTab(b.dataset.tab); };
 function initDates(){
   const t = today();
-  ['oFrom','oTo','leFrom','leTo','cFrom','cTo','dDay','oDate'].forEach(id => $(id).value = t); dateHint();
+  ['oFrom','oTo','leFrom','leTo','cFrom','cTo','dDay','oDate','oPaid'].forEach(id => $(id).value = t); dateHint(); paidHint();
+  $('oPaid').max = t; $('dDay').max = t; if (!isAdmin()) $('dDay').min = addDays(-1);
+  refreshApprBadge();
   const d = new Date(); $('cReceived').value = `${t}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   setPeriod('month'); $('rDay').value = t; $('rMonth').value = t.slice(0,7);
 }
@@ -674,6 +695,7 @@ function dayLabel(day){
   if (day===addDays(-1)) return 'أمس';
   return `${WEEK[new Date(day+'T00:00:00').getDay()]} ${day.slice(5).replace('-','/')}`;
 }
+const late = o => o.paid_date && fmtDate(o.created_at) !== o.paid_date ? ` <span class="tag warn" title="انسجّل ${fmtDT(o.created_at)}">سُجّل ${fmtDate(o.created_at).slice(5).replace('-','/')}</span>` : '';
 const ST_CLASS = { 'قيد التجهيز':'st-prep', 'تم التجهيز':'st-ready', 'تم التوصيل':'st-done', 'تم الاستلام':'st-done', 'ملغي':'st-cancel' };
 const DONE_ST = ['تم التوصيل','تم الاستلام'];
 const OPEN_ST = ['قيد التجهيز','تم التجهيز'];
@@ -692,6 +714,12 @@ document.querySelectorAll('input[name="ful"]').forEach(r => r.onchange = () => {
 document.querySelectorAll('input[name="reg"]').forEach(r => r.onchange = () => $('oRegionOtherWrap').classList.toggle('hidden', radioVal('reg')!=='أخرى'));
 function dateHint(){ const d = $('oDate').value; $('oDateHint').textContent = !d ? '' : d < today() ? `${dayLabel(d)} — تاريخ فات، تأكدي` : d===today() ? 'اليوم' : `${dayLabel(d)} · طلب مجدول`; $('oDateHint').classList.toggle('warn', !!d && d < today()); }
 $('oDate').oninput = dateHint;
+function paidHint(){
+  const d = $('oPaid').value, t = today(); const el = $('oPaidHint');
+  el.textContent = !d ? '' : d > t ? 'ما يصير تاريخ تحويل في المستقبل' : d===t ? 'اليوم' : (isAdmin() ? `${dayLabel(d)} — ينحسب في يومه مباشرة` : `${dayLabel(d)} — تاريخ سابق، بينتظر اعتماد الأدمن`);
+  el.classList.toggle('warn', !!d && d !== t);
+}
+$('oPaid').oninput = paidHint;
 function deliveryDate(){ return $('oDate').value; }
 
 $('oSave').onclick = async () => {
@@ -705,20 +733,23 @@ $('oSave').onclick = async () => {
   if (!region) return msg('oMsg','اختاري المنطقة');
   if (!pick && region==='أخرى' && !$('oRegionOther').value.trim()) return msg('oMsg','اكتبي اسم المنطقة');
   if (!delivery_date) return msg('oMsg','اختاري تاريخ التسليم');
+  const paid_date = $('oPaid').value;
+  if (!paid_date || paid_date > today()) return msg('oMsg','تاريخ التحويل غير صحيح');
   $('oSave').disabled = true;
   try{
     const receipt_path = payment==='تحويل بنكي' ? await upload($('oReceipt').files[0], 'receipts') : null;
-    const row = { phone, amount, description:desc, payment, region, delivery_date,
+    const row = { phone, amount, description:desc, payment, region, delivery_date, paid_date,
       region_other: !pick && region==='أخرى' ? $('oRegionOther').value.trim() : null,
       fulfillment: ful, order_type:$('oType').value, source:$('oSource').value||null, status:$('oStatus').value,
       txn_ref: payment!=='تحويل بنكي' ? ($('oTxn').value.trim()||null) : null, receipt_path };
-    const { data, error } = await sb.from('wa_orders').insert(row).select('code').single();
+    const { data, error } = await sb.from('wa_orders').insert(row).select('code,approval').single();
     if (error) throw error;
     const when = dayLabel(delivery_date);
-    toast(`تم حفظ الطلب ${data.code} — تسليم ${when}`); msg('oMsg', `تم حفظ الطلب ${data.code} — تسليم ${when}`, true);
+    const note = data.approval==='بانتظار الاعتماد' ? `تم حفظ ${data.code} — بانتظار اعتماد الأدمن لأن تاريخ التحويل سابق` : `تم حفظ الطلب ${data.code} — تسليم ${when}`;
+    toast(note); msg('oMsg', note, true);
     ['oPhone','oAmount','oDesc','oRegionOther','oTxn','oReceipt'].forEach(id => $(id).value='');
     document.querySelectorAll('input[name="pay"],input[name="reg"]').forEach(r => r.checked=false);
-    $('oDate').value = today(); dateHint();
+    $('oDate').value = today(); dateHint(); $('oPaid').value = today(); paidHint();
     ['oReceiptWrap','oTxnWrap','oRegionOtherWrap'].forEach(id => $(id).classList.add('hidden'));
     $('f1').checked = true; $('f1').onchange(); $('oType').value='عادي'; $('oSource').value=''; $('oStatus').value='قيد التجهيز';
     loadOrders();
@@ -728,24 +759,24 @@ $('oSave').onclick = async () => {
 
 // الطلبات حسب تاريخ التسليم (للتشغيل والتوصيل)
 async function fetchOrders(from, to){
-  const { data, error } = await sb.from('wa_orders').select('*').gte('delivery_date', from).lte('delivery_date', to).order('delivery_date').order('created_at').limit(5000);
+  const { data, error } = await sb.from('wa_orders').select('*').eq('approval','معتمد').gte('delivery_date', from).lte('delivery_date', to).order('delivery_date').order('created_at').limit(5000);
   if (error){ toast('خطأ في جلب الطلبات'); return []; }
   return data;
 }
 // الطلبات حسب تاريخ التسجيل والتحويل — المبيعات تنحسب بهذا التاريخ
 async function fetchPaid(from, to){
-  const { data } = await sb.from('wa_orders').select('*').gte('created_at', startISO(from)).lt('created_at', endISO(to)).limit(5000);
+  const { data } = await sb.from('wa_orders').select('*').gte('paid_date', from).lte('paid_date', to).eq('approval','معتمد').limit(5000);
   return data||[];
 }
 
 let ORDERS = [], OVIEW = 'reg';
 async function loadOrders(){
   let q = sb.from('wa_orders').select('*');
-  if (OVIEW==='reg') q = q.gte('created_at', startISO(today())).lt('created_at', endISO(today()));
+  if (OVIEW==='reg') q = q.eq('paid_date', today());
   if (OVIEW==='today') q = q.eq('delivery_date', today());
   if (OVIEW==='pending') q = q.in('status', OPEN_ST);
   if (OVIEW==='upcoming') q = q.gt('delivery_date', today());
-  if (OVIEW==='range') q = q.gte('created_at', startISO($('oFrom').value)).lt('created_at', endISO($('oTo').value));
+  if (OVIEW==='range') q = q.gte('paid_date', $('oFrom').value).lte('paid_date', $('oTo').value);
   const [{ data, error }] = await Promise.all([ q.order(OVIEW==='reg'||OVIEW==='range' ? 'created_at' : 'delivery_date', { ascending: !(OVIEW==='reg'||OVIEW==='range') }).limit(5000), loadHero(), loadAlerts() ]);
   if (error) toast('خطأ في جلب الطلبات');
   ORDERS = data||[];
@@ -754,9 +785,9 @@ async function loadOrders(){
 async function loadHero(){
   const t = today();
   const [{ data:todayReg }, { data:open }, { data:unv }] = await Promise.all([
-    sb.from('wa_orders').select('amount,status').gte('created_at', startISO(t)).lt('created_at', endISO(t)),
-    sb.from('wa_orders').select('delivery_date,status').in('status', OPEN_ST),
-    isAdmin() ? sb.from('wa_orders').select('amount').eq('verified', false).neq('status','ملغي') : Promise.resolve({ data:[] })
+    sb.from('wa_orders').select('amount,status').eq('paid_date', t).eq('approval','معتمد'),
+    sb.from('wa_orders').select('delivery_date,status').in('status', OPEN_ST).neq('approval','مرفوض'),
+    isAdmin() ? sb.from('wa_orders').select('amount').eq('verified', false).neq('status','ملغي').eq('approval','معتمد') : Promise.resolve({ data:[] })
   ]);
   const reg = (todayReg||[]).filter(o => o.status!=='ملغي');
   const openL = open||[];
@@ -773,9 +804,9 @@ async function loadHero(){
 /* ================== التنبيهات ================== */
 async function loadAlerts(){
   const t = today(), lim = addDays(2);
-  const { data } = await sb.from('wa_orders').select('id,code,phone,description,order_type,status,delivery_date,created_at,fulfillment').in('status', OPEN_ST).lte('delivery_date', lim).order('delivery_date').limit(200);
+  const { data } = await sb.from('wa_orders').select('id,code,phone,description,order_type,status,delivery_date,created_at,paid_date,approval,fulfillment').in('status', OPEN_ST).lte('delivery_date', lim).order('delivery_date').limit(200);
   // المجدولة فقط: موعد تسليمها بعد يوم تسجيلها
-  const list = (data||[]).filter(o => o.delivery_date > fmtDate(o.created_at));
+  const list = (data||[]).filter(o => o.delivery_date > o.paid_date && o.approval!=='مرفوض');
   if (!list.length){ $('alerts').classList.add('hidden'); return; }
   const late = list.filter(o => o.delivery_date < t), tod = list.filter(o => o.delivery_date===t);
   const special = list.filter(o => o.order_type!=='عادي');
@@ -806,13 +837,13 @@ function renderOrders(){
   const q = arDigits($('oSearch').value.trim()).toUpperCase();
   const qp = normPhone(q);
   const list = ORDERS.filter(o => !q || o.code.includes(q) || (qp && o.phone.includes(qp)));
-  const live = list.filter(o => o.status!=='ملغي');
+  const live = list.filter(o => o.status!=='ملغي' && o.approval==='معتمد');
   const pend = live.filter(o => OPEN_ST.includes(o.status));
   const sum = a => a.reduce((s,o)=>s+Number(o.amount),0);
   stats('oStats', [[live.length,'طلب','blue'],[money(sum(live)),'المبلغ','green'],[pend.length,'لم يُسلّم بعد','amber'],[money(live.length?sum(live)/live.length:0),'متوسط الطلب','violet']]);
   const t = today();
   $('oRows').innerHTML = list.length ? list.map(o => `<tr class="${OPEN_ST.includes(o.status) && o.delivery_date < t ? 'late' : ''}">
-    <td><b>${o.code}</b>${o.order_type!=='عادي'?` <span class="tag violet">${esc(o.order_type)}</span>`:''}</td>
+    <td><b>${o.code}</b>${o.approval!=='معتمد'?` <span class="stp ${o.approval==='مرفوض'?'st-cancel':'st-prep'}" title="${esc(o.reject_reason||'')}">${o.approval}${o.reject_reason?': '+esc(o.reject_reason):''}</span>`:''}${late(o)}${o.order_type!=='عادي'?` <span class="tag violet">${esc(o.order_type)}</span>`:''}</td>
     <td><span class="tag ${o.delivery_date===t?'blue':o.delivery_date>t?'violet':''}">${dayLabel(o.delivery_date)}</span>${o.fulfillment==='استلام'?' <span class="tag pick">استلام</span>':''}</td>
     <td class="num"><a class="link" href="https://wa.me/966${esc(o.phone.replace(/^0/,''))}" target="_blank" rel="noopener">${esc(o.phone)}</a></td>
     <td class="desc">${esc(o.description)}${o.source?` <span class="tag rose">${esc(o.source)}</span>`:''}</td>
@@ -852,8 +883,8 @@ $('oRows').addEventListener('click', async e => {
   if (d && confirm('حذف الطلب نهائياً؟')){ const { error } = await sb.from('wa_orders').delete().eq('id', d); toast(error?'ما انحذف':'تم الحذف'); loadOrders(); }
 });
 $('oCsv').onclick = () => {
-  const head = ['الرقم','تاريخ التسجيل','وقت التسجيل','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق'];
-  const rows = ORDERS.map(o => [o.code, fmtDate(o.created_at), fmtTime(o.created_at), o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا']);
+  const head = ['الرقم','تاريخ التحويل','تاريخ التسجيل','وقت التسجيل','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق','الاعتماد'];
+  const rows = ORDERS.map(o => [o.code, o.paid_date, fmtDate(o.created_at), fmtTime(o.created_at), o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا', o.approval]);
   const csv = '\ufeff' + [head, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
   a.download = `طلبات-الواتس-${today()}.csv`; a.click();
@@ -872,7 +903,8 @@ function openEdit(id){
   const o = ORDERS.find(x => x.id==id); if (!o) return;
   EDIT = o;
   $('eCode').textContent = o.code;
-  $('eMeta').textContent = `سُجّل ${fmtDT(o.created_at)}`;
+  $('eMeta').textContent = `سُجّل ${fmtDT(o.created_at)} بواسطة ${o.created_by||'—'} · ${o.approval}`;
+  $('ePaid').value = o.paid_date; $('ePaid').max = today();
   $('ePhone').value = o.phone; $('eAmount').value = o.amount; $('eDesc').value = o.description;
   $('ePay').value = o.payment; $('eTxn').value = o.txn_ref||'';
   $('eFul').value = o.fulfillment||'توصيل'; $('eReg').value = o.region; $('eRegOther').value = o.region_other||'';
@@ -897,7 +929,7 @@ $('eSave').onclick = async () => {
     const upd = { phone, amount, description:desc, payment:$('ePay').value, txn_ref:$('eTxn').value.trim()||null,
       fulfillment:$('eFul').value, region: pick ? PICKUP_REGION : $('eReg').value,
       region_other: !pick && $('eReg').value==='أخرى' ? $('eRegOther').value.trim() : null,
-      delivery_date:$('eDate').value, order_type:$('eType').value, source:$('eSource').value||null, status:st };
+      delivery_date:$('eDate').value, paid_date:$('ePaid').value, order_type:$('eType').value, source:$('eSource').value||null, status:st };
     const f = $('eReceipt').files[0];
     if (f) upd.receipt_path = await upload(f, 'receipts');
     const { error } = await sb.from('wa_orders').update(upd).eq('id', EDIT.id);
@@ -1022,8 +1054,8 @@ $('cRows').addEventListener('click', async e => {
 /* ================== العملاء ================== */
 let CUSTOMERS = [];
 async function loadCustomers(){
-  const { data } = await sb.from('wa_orders').select('phone,amount,created_at,region,region_other,status').neq('status','ملغي').limit(20000);
-  const { data:nullStatus } = await sb.from('wa_orders').select('phone,amount,created_at,region,region_other,status').is('status',null).limit(20000);
+  const { data } = await sb.from('wa_orders').select('phone,amount,created_at,region,region_other,status').neq('status','ملغي').eq('approval','معتمد').limit(20000);
+  const { data:nullStatus } = await sb.from('wa_orders').select('phone,amount,created_at,region,region_other,status').is('status',null).eq('approval','معتمد').limit(20000);
   const all = [...(data||[]), ...(nullStatus||[])];
   const m = {};
   all.forEach(o => {
@@ -1106,7 +1138,7 @@ async function loadReports(){
   const sales = sum(live), prevSales = sum(prevLive);
   const aov = live.length ? sales/live.length : 0, prevAov = prevLive.length ? sum(prevLive)/prevLive.length : 0;
   const unver = live.filter(o=>!o.verified);
-  const scheduled = live.filter(o => o.delivery_date > fmtDate(o.created_at));
+  const scheduled = live.filter(o => o.delivery_date > o.paid_date);
   const delivered = sched.filter(o=>DONE_ST.includes(o.status));
   const open = sched.filter(o=>OPEN_ST.includes(o.status));
   const regN = o => o.region==='أخرى' ? (o.region_other||'أخرى') : o.region;
@@ -1120,27 +1152,27 @@ async function loadReports(){
   // يومي
   const days = {};
   for (let d = new Date(from+'T00:00:00'); ymd(d) <= to; d.setDate(d.getDate()+1)) days[ymd(d)] = { n:0, amt:0, del:0, leads:0, dr:null };
-  live.forEach(o => { const x=days[fmtDate(o.created_at)]; if(x){ x.n++; x.amt+=Number(o.amount); } });
+  live.forEach(o => { const x=days[o.paid_date]; if(x){ x.n++; x.amt+=Number(o.amount); } });
   delivered.forEach(o => { const x=days[o.delivery_date]; if(x) x.del++; });
   leads.forEach(l => { const x=days[fmtDate(l.created_at)]; if(x) x.leads++; });
   (daily||[]).forEach(r => { if(days[r.day]) days[r.day].dr = r; });
   const dk = Object.keys(days);
   // أيام الأسبوع والساعات
   const wd = Array(7).fill(0), wdN = Array(7).fill(0), hr = Array(24).fill(0);
-  live.forEach(o => { const d = new Date(o.created_at); wd[d.getDay()] += Number(o.amount); wdN[d.getDay()]++; hr[d.getHours()]++; });
+  live.forEach(o => { const d = new Date(o.created_at), pd = new Date(o.paid_date+'T00:00:00').getDay(); wd[pd] += Number(o.amount); wdN[pd]++; if (fmtDate(o.created_at)===o.paid_date) hr[d.getHours()]++; });
   // أفضل العملاء
   const cm = {}; live.forEach(o => { const c = cm[o.phone] ||= { n:0, t:0 }; c.n++; c.t += Number(o.amount); });
   const topC = Object.entries(cm).sort((a,b)=>b[1].t-a[1].t).slice(0,10);
   // الحالات
   const stCount = countBy(sched,'status');
 
-  const orderRows = live.map(o => `<tr><td><b>${o.code}</b></td><td class="num">${fmtDT(o.created_at)}</td><td>${dayLabel(o.delivery_date)}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(o.payment)}</td><td>${esc(regN(o))}</td><td>${esc(o.order_type)}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'✓':'—'}</td><td>${esc(nameOf(o.created_by))}</td></tr>`);
+  const orderRows = live.map(o => `<tr><td><b>${o.code}</b></td><td class="num">${o.paid_date}${late(o)}</td><td>${dayLabel(o.delivery_date)}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(o.payment)}</td><td>${esc(regN(o))}</td><td>${esc(o.order_type)}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'✓':'—'}</td><td>${esc(nameOf(o.created_by))}</td></tr>`);
   const dailyRows = dk.slice().reverse().map(k => { const x=days[k], r=x.dr; const inq = r ? r.inq_price+r.inq_avail+r.inq_delivery+r.inq_occasion+r.inq_other : 0;
     const top = r ? topKey({'السعر':r.inq_price,'التوفر':r.inq_avail,'التوصيل':r.inq_delivery,'المناسبات':r.inq_occasion,'أخرى':r.inq_other}) : '—';
     return `<tr><td><b>${WEEK[new Date(k+'T00:00:00').getDay()]}</b> <span class="num muted">${k}</span></td><td class="num">${x.n}</td><td class="num"><b>${money(x.amt)}</b></td><td class="num">${x.n?money(x.amt/x.n):'—'}</td><td class="num">${x.del}</td>
     <td class="num">${r?r.stories:'<span class="tag warn">لم يُسجل</span>'}</td><td class="num">${r?r.views:''}</td><td class="num">${r?r.replies:''}</td><td class="num">${x.leads}</td><td class="num">${r?inq:''}</td><td>${r&&inq?top:'—'}</td></tr>`; });
   const compRows = complaints.map(c => `<tr><td class="num">${fmtDT(c.received_at)}</td><td><b>${esc(c.order_code)}</b></td><td>${esc(c.ctype)}</td><td class="desc">${esc(c.details)}</td><td class="desc">${esc(c.action)}</td><td>${esc(c.responsible||'لم يُحدد')}</td><td><span class="stp ${c.status==='تم الحل'?'st-done':'st-prep'}">${esc(c.status)}</span></td><td class="num">${c.closed_at?Math.max(0,Math.round((new Date(c.closed_at)-new Date(c.received_at))/3600000))+' ساعة':'—'}</td></tr>`);
-  const unverRows = unver.map(o => `<tr><td><b>${o.code}</b></td><td class="num">${fmtDate(o.created_at)}</td><td class="num">${esc(o.phone)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(o.payment)}</td><td>${o.receipt_path?'إيصال مرفق':(o.txn_ref?esc(o.txn_ref):'<span class="tag warn">بدون إثبات</span>')}</td></tr>`);
+  const unverRows = unver.map(o => `<tr><td><b>${o.code}</b></td><td class="num">${o.paid_date}</td><td class="num">${esc(o.phone)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(o.payment)}</td><td>${o.receipt_path?'إيصال مرفق':(o.txn_ref?esc(o.txn_ref):'<span class="tag warn">بدون إثبات</span>')}</td></tr>`);
   const leadRows = leads.map(l => `<tr><td class="num">${fmtDT(l.created_at)}</td><td class="num">${esc(l.phone)}</td><td>${esc(l.interest)}</td><td class="desc">${esc(l.note)}</td><td>${l.converted?`<span class="stp st-done">طلب ${l.converted}</span>`:'<span class="stp st-prep">لم يطلب</span>'}</td></tr>`);
   const topRows = topC.map(([p,c],i) => `<tr><td>${i+1}</td><td class="num"><b>${esc(p)}</b></td><td class="num">${c.n}</td><td class="num"><b>${money(c.t)}</b></td><td class="num">${money(c.t/c.n)}</td></tr>`);
 
@@ -1205,7 +1237,7 @@ async function loadReports(){
 
     <h4 class="sec">التفاصيل</h4>
     ${table('التقرير اليومي', ['اليوم','الطلبات','المبيعات','متوسط الطلب','تسليمات','ستوري','مشاهدات','ردود','محتملين','استفسارات','أكثر استفسار'], dailyRows, true)}
-    ${table('كل الطلبات', ['الرقم','التسجيل','التسليم','الجوال','الوصف','المبلغ','الدفع','المنطقة','النوع','الحالة','تحقق','سجّلها'], orderRows)}
+    ${table('كل الطلبات', ['الرقم','تاريخ التحويل','التسليم','الجوال','الوصف','المبلغ','الدفع','المنطقة','النوع','الحالة','تحقق','سجّلها'], orderRows)}
     ${isAdmin()?table('مبالغ بانتظار التحقق', ['الرقم','التاريخ','الجوال','المبلغ','الدفع','الإثبات'], unverRows):''}
     ${table('أفضل ١٠ عملاء في الفترة', ['#','الجوال','الطلبات','الإجمالي','المتوسط'], topRows)}
     ${table('سجل الشكاوى', ['الاستلام','الطلب','النوع','التفاصيل','الإجراء','المتسبب','الحالة','مدة الحل'], compRows)}
@@ -1213,8 +1245,8 @@ async function loadReports(){
   $('rCsv').onclick = () => exportCSV(REP_ORDERS, `تقرير-الواتس-${from}-${to}.csv`);
 }
 function exportCSV(list, name){
-  const head = ['الرقم','تاريخ التسجيل','وقت التسجيل','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق'];
-  const rows = list.map(o => [o.code, fmtDate(o.created_at), fmtTime(o.created_at), o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا']);
+  const head = ['الرقم','تاريخ التحويل','تاريخ التسجيل','وقت التسجيل','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق','الاعتماد'];
+  const rows = list.map(o => [o.code, o.paid_date, fmtDate(o.created_at), fmtTime(o.created_at), o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا', o.approval]);
   const csv = '\ufeff' + [head, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download = name; a.click();
 }
@@ -1258,8 +1290,8 @@ async function loadDayReport(){
   $('rOut').innerHTML = `
     <div class="rep-head"><div><h2>تقرير الطلبات اليومي</h2><p class="sub">${WEEK[new Date(day+'T00:00:00').getDay()]} ${day} · طلبات الواتس المحوّلة في هذا اليوم</p></div></div>
     ${sumCards(list)}
-    <section class="panel"><div class="tablewrap"><table><thead><tr><th>#</th><th>الرقم</th><th>الوقت</th><th>التسليم</th><th>الجوال</th><th>الوصف</th><th>المبلغ</th><th>الدفع</th><th>المنطقة</th><th>النوع</th><th>الحالة</th><th>التحقق</th></tr></thead><tbody>
-    ${list.length ? list.map((o,i)=>`<tr><td>${i+1}</td><td><b>${o.code}</b></td><td class="num">${fmtTime(o.created_at)}</td><td>${o.delivery_date===day?'نفس اليوم':`<span class="tag violet">${dayLabel(o.delivery_date)}</span>`}${o.fulfillment==='استلام'?' <span class="tag pick">استلام</span>':''}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td><span class="pay pay-${{'تمارا':'tm','تابي':'tb','تحويل بنكي':'bk'}[o.payment]}">${esc(o.payment)}</span></td><td>${esc(regName(o))}</td><td>${esc(o.order_type)}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'<span class="stp st-done">تم</span>':'<span class="stp st-prep">بانتظار</span>'}</td></tr>`).join('')
+    <section class="panel"><div class="tablewrap"><table><thead><tr><th>#</th><th>الرقم</th><th>وقت التسجيل</th><th>التسليم</th><th>الجوال</th><th>الوصف</th><th>المبلغ</th><th>الدفع</th><th>المنطقة</th><th>النوع</th><th>الحالة</th><th>التحقق</th></tr></thead><tbody>
+    ${list.length ? list.map((o,i)=>`<tr><td>${i+1}</td><td><b>${o.code}</b></td><td class="num">${fmtTime(o.created_at)}${late(o)}</td><td>${o.delivery_date===day?'نفس اليوم':`<span class="tag violet">${dayLabel(o.delivery_date)}</span>`}${o.fulfillment==='استلام'?' <span class="tag pick">استلام</span>':''}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td><span class="pay pay-${{'تمارا':'tm','تابي':'tb','تحويل بنكي':'bk'}[o.payment]}">${esc(o.payment)}</span></td><td>${esc(regName(o))}</td><td>${esc(o.order_type)}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'<span class="stp st-done">تم</span>':'<span class="stp st-prep">بانتظار</span>'}</td></tr>`).join('')
       : `<tr><td colspan="12" class="empty">ما فيه طلبات في هذا اليوم.</td></tr>`}
     </tbody>${list.length?`<tfoot><tr><td colspan="6" data-label=""><b>الإجمالي (${list.length} طلب)</b></td><td class="num" data-label="المبلغ"><b>${money(total)}</b></td><td colspan="5" data-label=""></td></tr></tfoot>`:''}</table></div></section>
     ${cancelled.length?`<p class="sub">ملغي في هذا اليوم: ${cancelled.map(o=>o.code).join('، ')} (غير محسوب في المبيعات)</p>`:''}`;
@@ -1274,7 +1306,7 @@ async function loadMonthReport(){
   RDATA = list;
   const days = {};
   for (let d = new Date(from+'T00:00:00'); ymd(d) <= to; d.setDate(d.getDate()+1)) days[ymd(d)] = [];
-  list.forEach(o => { const k = fmtDate(o.created_at); if (days[k]) days[k].push(o); });
+  list.forEach(o => { const k = o.paid_date; if (days[k]) days[k].push(o); });
   const s = a => a.reduce((t,o)=>t+Number(o.amount),0);
   const cell = (a, k, v) => { const x = a.filter(o=>o[k]===v); return x.length ? money(s(x)) : '—'; };
   const rows = Object.keys(days).map(k => { const a = days[k];
@@ -1286,10 +1318,61 @@ async function loadMonthReport(){
     <section class="panel"><h3>ملخص الأيام</h3><div class="tablewrap"><table><thead><tr><th>اليوم</th><th>الطلبات</th><th>المبيعات</th><th>تحويل بنكي</th><th>تابي</th><th>تمارا</th><th>توصيل أبها</th><th>توصيل خميس مشيط</th><th>توصيل أخرى</th><th>استلام</th></tr></thead><tbody>${rows}</tbody>
     <tfoot><tr><td><b>الإجمالي</b></td><td class="num"><b>${list.length}</b></td><td class="num"><b>${money(s(list))}</b></td>${PAYS.map(p=>`<td class="num"><b>${cell(list,'payment',p)}</b></td>`).join('')}${REGS.map(g=>`<td class="num"><b>${list.filter(o=>o.region===g && o.fulfillment!=='استلام').length}</b></td>`).join('')}<td class="num"><b>${list.filter(o=>o.fulfillment==='استلام').length}</b></td></tr></tfoot></table></div></section>
     ${table('كل طلبات الشهر', ['الرقم','التاريخ','التسليم','الجوال','الوصف','المبلغ','الدفع','المنطقة','الحالة','التحقق'],
-      list.sort((a,b)=>a.created_at<b.created_at?-1:1).map(o=>`<tr><td><b>${o.code}</b></td><td class="num">${fmtDate(o.created_at)}</td><td>${o.delivery_date}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(o.payment)}</td><td>${esc(regName(o))}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'تم':'بانتظار'}</td></tr>`))}`;
+      list.sort((a,b)=>a.created_at<b.created_at?-1:1).map(o=>`<tr><td><b>${o.code}</b></td><td class="num">${o.paid_date}${late(o)}</td><td>${o.delivery_date}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(o.payment)}</td><td>${esc(regName(o))}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'تم':'بانتظار'}</td></tr>`))}`;
 }
 $('rDayCsv').onclick = () => exportCSV(RDATA, `تقرير-يومي-${$('rDay').value}.csv`);
 $('rMonthCsv').onclick = () => exportCSV(RDATA, `تقرير-شهري-${$('rMonth').value}.csv`);
+
+/* ================== الاعتماد وسجل التدقيق (الأدمن) ================== */
+const FIELD_AR = { phone:'الجوال', amount:'المبلغ', description:'الوصف', payment:'الدفع', region:'المنطقة', region_other:'اسم المنطقة', delivery_date:'تاريخ التسليم', paid_date:'تاريخ التحويل', order_type:'النوع', source:'المصدر', status:'الحالة', txn_ref:'رقم العملية', receipt_path:'الإيصال', verified:'التحقق', fulfillment:'طريقة التسليم', approval:'الاعتماد', reject_reason:'سبب الرفض', responsible:'المتسبب', action:'الإجراء', notes:'ملاحظات', ctype:'نوع الشكوى', details:'التفاصيل', order_code:'رقم الطلب' };
+const SKIP_F = ['verified_by','verified_at','approved_by','approved_at','delivered_at','closed_at','updated_at','code'];
+let PROFILES = [];
+const nameOfEmail = e => ((PROFILES.find(p => p.email.toLowerCase()===(e||'').toLowerCase())||{}).name) || e || '—';
+async function loadApprovals(){
+  const [{ data:pend }, { data:done }, { data:aud }, { data:pr }] = await Promise.all([
+    sb.from('wa_orders').select('*').eq('approval','بانتظار الاعتماد').order('paid_date'),
+    sb.from('wa_orders').select('*').neq('approval','بانتظار الاعتماد').not('approved_at','is',null).order('approved_at',{ascending:false}).limit(30),
+    sb.from('wa_audit').select('*').order('at',{ascending:false}).limit(150),
+    sb.from('wa_profiles').select('email,name')
+  ]);
+  PROFILES = pr||[];
+  const P = pend||[];
+  updateApprBadge(P.length);
+  stats('apStats', [[P.length,'طلب بانتظار الاعتماد', P.length?'alert':'sage'],[money(P.reduce((s,o)=>s+Number(o.amount),0)),'مبالغها','gold']]);
+  $('apRows').innerHTML = P.length ? P.map(o => `<tr>
+    <td><b>${o.code}</b></td><td class="num"><b>${o.paid_date}</b></td><td class="num">${fmtDT(o.created_at)}</td><td>${esc(nameOfEmail(o.created_by))}</td>
+    <td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(o.payment)}</td>
+    <td>${o.receipt_path?`<a class="link" data-file="${esc(o.receipt_path)}">الإيصال</a>`:(o.txn_ref?esc(o.txn_ref):'<span class="tag warn">بدون إثبات</span>')}</td>
+    <td><span class="rowbtns"><button class="btn small" data-approve="${o.id}">اعتماد</button><button class="btn ghost small" data-reject="${o.id}">رفض</button></span></td></tr>`).join('')
+    : `<tr><td colspan="10" class="empty">ما فيه طلبات بانتظار الاعتماد 👌</td></tr>`;
+  $('apDone').innerHTML = (done||[]).length ? done.map(o => `<tr><td><b>${o.code}</b></td><td class="num">${o.paid_date}</td><td class="num"><b>${money(o.amount)}</b></td>
+    <td><span class="stp ${o.approval==='مرفوض'?'st-cancel':'st-done'}">${o.approval}</span>${o.reject_reason?` <small class="muted">${esc(o.reject_reason)}</small>`:''}</td><td>${esc(nameOfEmail(o.approved_by))}</td><td class="num">${o.approved_at?fmtDT(o.approved_at):'—'}</td></tr>`).join('')
+    : `<tr><td colspan="6" class="empty">لا يوجد</td></tr>`;
+  $('auRows').innerHTML = (aud||[]).length ? aud.map(a => {
+    const o = a.old_data||{}, n = a.new_data||{}, rec = n.code||o.code||(a.tbl==='wa_complaints'?`شكوى #${a.row_id}`:a.row_id);
+    let what = '';
+    if (a.action==='INSERT') what = a.tbl==='wa_orders' ? `طلب جديد · ${money(n.amount)} · ${esc(n.payment||'')}` : `شكوى جديدة · ${esc(n.ctype||'')}`;
+    else if (a.action==='DELETE') what = `<b style="color:var(--alert)">حذف</b>${o.amount?` · ${money(o.amount)}`:''}`;
+    else what = Object.keys(n).filter(k => !SKIP_F.includes(k) && JSON.stringify(n[k])!==JSON.stringify(o[k])).map(k => `${FIELD_AR[k]||k}: <span class="muted">${esc(o[k]??'—')}</span> ← <b>${esc(n[k]??'—')}</b>`).join('<br>') || '<span class="muted">بدون تغيير فعلي</span>';
+    return `<tr><td class="num">${fmtDT(a.at)}</td><td>${esc(nameOfEmail(a.actor))}</td><td><b>${esc(String(rec))}</b></td><td class="desc">${what}</td></tr>`; }).join('')
+    : `<tr><td colspan="4" class="empty">لا يوجد</td></tr>`;
+}
+function updateApprBadge(n){ const b = $('apBadge'); b.textContent = n; b.classList.toggle('hidden', !n); }
+async function refreshApprBadge(){ if (!isAdmin()) return; const { count } = await sb.from('wa_orders').select('id',{count:'exact',head:true}).eq('approval','بانتظار الاعتماد'); updateApprBadge(count||0); }
+document.querySelector('[data-view="approvals"]').addEventListener('click', async e => {
+  if (e.target.dataset.file) return openFile(e.target.dataset.file);
+  const a = e.target.dataset.approve, r = e.target.dataset.reject;
+  if (a){
+    e.target.disabled = true;
+    const { error } = await sb.from('wa_orders').update({ approval:'معتمد' }).eq('id', a);
+    toast(error ? 'ما انعتمد: '+error.message : 'تم الاعتماد — انحسب في يوم التحويل'); loadApprovals();
+  }
+  if (r){
+    const reason = prompt('سبب الرفض (يظهر لمنال):'); if (reason===null) return;
+    const { error } = await sb.from('wa_orders').update({ approval:'مرفوض', reject_reason: reason.trim()||null }).eq('id', r);
+    toast(error ? 'ما انرفض: '+error.message : 'تم الرفض'); loadApprovals();
+  }
+});
 
 /* ================== جداول الجوال كبطاقات ================== */
 function labelize(){
