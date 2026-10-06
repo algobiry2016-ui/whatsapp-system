@@ -679,7 +679,7 @@ $('tabs').onclick = e => { const b = e.target.closest('button'); if (!b) return;
 function initDates(){
   const t = today();
   ['oFrom','oTo','leFrom','leTo','cFrom','cTo','dDay','oDate','oPaid'].forEach(id => $(id).value = t); dateHint(); paidHint();
-  $('oPaid').max = t; $('dDay').max = t; if (!isAdmin()) $('dDay').min = addDays(-1);
+  $('oPaid').max = t; $('dDay').max = t; if (!isAdmin()) $('dDay').min = addDays(-7);
   refreshApprBadge();
   const d = new Date(); $('cReceived').value = `${t}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   setPeriod('month'); $('rDay').value = t; $('rMonth').value = t.slice(0,7);
