@@ -150,6 +150,7 @@ section.panel h2::before{content:"";display:inline-block;width:8px;height:8px;bo
 #oPay input:checked+label[for=p1]{background:var(--blue);border-color:var(--blue)}
 #oPay input:checked+label[for=p2]{background:#1E9A7A;border-color:#1E9A7A}
 #oPay input:checked+label[for=p3]{background:var(--pink);border-color:var(--pink)}
+.tparts{display:flex;flex-direction:row;direction:ltr;justify-content:flex-end;align-items:center;gap:6px} .field .tparts input{width:72px;text-align:center} .field .tparts select{width:auto} .tparts b{font-size:1.2rem}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px var(--violet-s);outline:none}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;background:none;border:0;overflow:visible;margin-bottom:18px}
 .stat{--c:var(--ink);--cs:#F2F2F0;background:var(--cs);border-radius:16px;padding:14px 16px;position:relative;overflow:hidden;border:0}
@@ -369,7 +370,7 @@ details.rep[open] summary{margin-bottom:12px}
       <div class="field hidden" id="oRegionOtherWrap"><label for="oRegionOther">اسم المنطقة</label><input id="oRegionOther"></div>
       <div class="field"><label for="oPaid">تاريخ التحويل</label><input id="oPaid" type="date"><small class="hint" id="oPaidHint">اليوم</small></div>
       <div class="field"><label for="oDate">تاريخ التسليم</label><input id="oDate" type="date"><small class="hint" id="oDateHint">اليوم</small></div>
-      <div class="field rtime hidden"><label for="oRecv">وقت استقبال الطلب</label><input id="oRecv" type="time"><small class="hint">متى العميل طلب منك (في يوم التحويل)</small></div>
+      <div class="field rtime hidden"><label for="oRecvH">وقت استقبال الطلب</label><div class="tparts" dir="ltr"><input id="oRecvH" inputmode="numeric" maxlength="2" placeholder="ساعة" aria-label="الساعة"><b>:</b><input id="oRecvM" inputmode="numeric" maxlength="2" placeholder="دقيقة" aria-label="الدقايق"><select id="oRecvAP" aria-label="مساء أو صباح"><option>م</option><option>ص</option></select></div><small class="hint">مثال: 10:30 م — متى العميل طلب منك</small></div>
       <div class="field hidden" id="oReceiptWrap"><label for="oReceipt">صورة التحويل <span class="opt">(اختياري)</span></label><input id="oReceipt" type="file" accept="image/*,application/pdf"></div>
       <div class="field hidden" id="oTxnWrap"><label for="oTxn">رقم العملية <span class="opt">(اختياري)</span></label><input id="oTxn"></div>
     </div>
@@ -760,6 +761,18 @@ $('oPaid').oninput = paidHint;
 function phoneHint(done){ const p = normPhone($('oPhone').value); $('oPhoneHint').textContent = p && (done || p.length > 10) ? phoneIssue(p) : ''; }
 $('oPhone').oninput = () => phoneHint(false);
 $('oPhone').onblur = () => phoneHint(true);
+// وقت الاستقبال: ساعة ودقايق تكتبها بنفسها، و"م" جاهزة لأن دوامها من 1 الظهر لـ 11 الليل
+// يرجّع "HH:MM"، أو '' إذا فاضي، أو null إذا غلط
+function recvTime(){
+  const hv = arDigits($('oRecvH').value).trim(), mv = arDigits($('oRecvM').value).trim();
+  if (!hv && !mv) return '';
+  const h = +hv, m = mv ? +mv : 0;
+  if (!/^\d{1,2}$/.test(hv) || (mv && !/^\d{1,2}$/.test(mv)) || h < 1 || h > 12 || m > 59) return null;
+  const h24 = $('oRecvAP').value==='م' ? (h===12 ? 12 : h+12) : (h===12 ? 0 : h);
+  return `${pad(h24)}:${pad(m)}`;
+}
+// بعد ما تكتب الساعة ينتقل للدقايق لحاله
+$('oRecvH').oninput = () => { const v = arDigits($('oRecvH').value); if (v.length===2 || (v.length===1 && +v>1)) $('oRecvM').focus(); };
 function deliveryDate(){ return $('oDate').value; }
 
 $('oSave').onclick = async () => {
@@ -775,8 +788,9 @@ $('oSave').onclick = async () => {
   if (!delivery_date) return msg('oMsg','اختاري تاريخ التسليم');
   const paid_date = $('oPaid').value;
   if (!paid_date || paid_date > today()) return msg('oMsg','تاريخ التحويل غير صحيح');
-  const recv = HAS_RECV && $('oRecv').value ? new Date(`${$('oPaid').value}T${$('oRecv').value}`) : null;
-  if (HAS_RECV && !recv) return msg('oMsg','اكتبي وقت استقبال الطلب');
+  const rt = recvTime();
+  if (HAS_RECV && !rt) return msg('oMsg', rt===null ? 'وقت الاستقبال غلط — الساعة من 1 لـ 12 والدقايق من 0 لـ 59' : 'اكتبي وقت استقبال الطلب');
+  const recv = rt ? new Date(`${paid_date}T${rt}`) : null;
   if (recv && recv > new Date()) return msg('oMsg','وقت الاستقبال لسّا ما جا — تأكدي من الوقت');
   $('oSave').disabled = true;
   try{
@@ -791,7 +805,7 @@ $('oSave').onclick = async () => {
     const when = dayLabel(delivery_date);
     const note = data.approval==='بانتظار الاعتماد' ? `تم حفظ ${data.code} — بانتظار اعتماد الأدمن لأن تاريخ التحويل سابق` : `تم حفظ الطلب ${data.code} — تسليم ${when}`;
     toast(note); msg('oMsg', note, true);
-    ['oPhone','oAmount','oDesc','oRegionOther','oTxn','oReceipt','oRecv'].forEach(id => $(id).value=''); $('oPhoneHint').textContent='';
+    ['oPhone','oAmount','oDesc','oRegionOther','oTxn','oReceipt','oRecvH','oRecvM'].forEach(id => $(id).value=''); $('oRecvAP').value='م'; $('oPhoneHint').textContent='';
     document.querySelectorAll('input[name="pay"],input[name="reg"]').forEach(r => r.checked=false);
     $('oDate').value = today(); dateHint(); $('oPaid').value = today(); paidHint();
     ['oReceiptWrap','oTxnWrap','oRegionOtherWrap'].forEach(id => $(id).classList.add('hidden'));
