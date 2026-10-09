@@ -217,6 +217,7 @@ tr.late td{background:#FFF6F7}
 .al-head{width:100%;max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:10px;background:none;border:0;color:var(--ink);padding:10px 18px;font-weight:600;font-size:.88rem;cursor:pointer;text-align:right}
 .al-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);margin-inline-end:8px;vertical-align:middle;animation:pulse 2s infinite}
 @keyframes pulse{50%{opacity:.35}}
+.al-dot.bad{background:#A4474F}
 .al-sp{border:1px solid var(--gold);color:#8A6B3A;border-radius:10px;padding:0 8px;font-size:.75rem;margin-inline-start:6px}
 .al-head .al-tog{transition:transform .2s}
 .alerts.closed .al-tog{transform:rotate(90deg)}
@@ -327,6 +328,10 @@ details.rep[open] summary{margin-bottom:12px}
   <button class="al-head" id="alHead" aria-expanded="false"><span id="alTitle"></span><span class="al-tog">▾</span></button>
   <ul id="alList"></ul>
 </div>
+<div id="badPh" class="alerts closed hidden" role="status">
+  <button class="al-head" id="bpHead" aria-expanded="false"><span id="bpTitle"></span><span class="al-tog">▾</span></button>
+  <ul id="bpList"></ul>
+</div>
 <main>
 <!-- ============ الطلبات ============ -->
 <div data-view="orders">
@@ -336,7 +341,7 @@ details.rep[open] summary{margin-bottom:12px}
     <h2>طلب جديد</h2>
     <p class="sub">رقم الطلب يطلع تلقائي بعد الحفظ.</p>
     <div class="grid">
-      <div class="field"><label for="oPhone">جوال العميل</label><input id="oPhone" inputmode="tel" placeholder="05xxxxxxxx"></div>
+      <div class="field"><label for="oPhone">جوال العميل</label><input id="oPhone" inputmode="tel" placeholder="05xxxxxxxx"><small class="hint warn" id="oPhoneHint"></small></div>
       <div class="field amount"><label for="oAmount">المبلغ (شامل التوصيل)</label><input id="oAmount" inputmode="decimal" placeholder="0"></div>
       <div class="field wide"><label for="oDesc">وصف الطلب</label><input id="oDesc" placeholder="مثال: باقة ورد جوري مع شوكولاتة"></div>
       <div class="field wide"><label>وسيلة الدفع</label>
@@ -588,6 +593,26 @@ function normPhone(v){
   if (p.length === 9 && p.startsWith('5')) p = '0' + p;
   return p;
 }
+// جوال السعودية: 10 أرقام ويبدأ بـ 05
+const PHONE_OK = /^05\d{8}$/;
+function phoneIssue(p){
+  if (PHONE_OK.test(p)) return '';
+  if (!p) return 'رقم الجوال فاضي';
+  if (/^0?5/.test(p)){
+    const x = p.replace(/^0/,'').length - 9, n = Math.abs(x);
+    return `${x > 0 ? (n===1 ? 'فيه رقم زايد' : `فيه ${n} أرقام زايدة`) : (n===1 ? 'ناقص رقم' : `ناقص ${n} أرقام`)} — جوال السعودية 10 أرقام (05xxxxxxxx)`;
+  }
+  return p.length < 9 ? `الرقم فيه ${p.length} أرقام — ناقص` : 'مو جوال سعودي (لازم يبدأ بـ 05 ويكون 10 أرقام)';
+}
+// غلط أكيد: شكله سعودي وطوله غلط، أو قصير. (الرقم الدولي ما نعتبره غلط)
+const phoneBad = p => !!p && !!phoneIssue(p) && (/^0?5/.test(p) || p.length < 9);
+const phoneTag = p => phoneBad(p) ? ` <span class="tag warn" title="${esc(phoneIssue(p))}">راجع الرقم</span>` : '';
+// قبل الحفظ: الغلط الأكيد يوقف الحفظ، والرقم الدولي يحتاج تأكيد
+function phoneCheck(p, msgId){
+  if (!phoneIssue(p)) return true;
+  if (phoneBad(p)){ msg(msgId, phoneIssue(p)); return false; }
+  return confirm(`الرقم ${p} ${phoneIssue(p)}.\n\nإذا هو رقم دولي (من برا السعودية) اضغط موافق، وإلا اضغط إلغاء وعدّل الرقم.`);
+}
 const num = v => { const n = parseFloat(arDigits(v).replace(/[^\d.]/g,'')); return isNaN(n) ? null : n; };
 const int = v => { const n = parseInt(arDigits(v),10); return isNaN(n) ? 0 : Math.max(0,n); };
 const money = n => (Number(n)||0).toLocaleString('en-US',{maximumFractionDigits:2}) + ' ر.س';
@@ -720,13 +745,17 @@ function paidHint(){
   el.classList.toggle('warn', !!d && d !== t);
 }
 $('oPaid').oninput = paidHint;
+// تنبيه فوري وهي تكتب: إذا زاد الرقم عن 10، أو بعد ما تطلع من الخانة
+function phoneHint(done){ const p = normPhone($('oPhone').value); $('oPhoneHint').textContent = p && (done || p.length > 10) ? phoneIssue(p) : ''; }
+$('oPhone').oninput = () => phoneHint(false);
+$('oPhone').onblur = () => phoneHint(true);
 function deliveryDate(){ return $('oDate').value; }
 
 $('oSave').onclick = async () => {
   const phone = normPhone($('oPhone').value), amount = num($('oAmount').value), desc = $('oDesc').value.trim();
   const ful = radioVal('ful')||'توصيل', pick = ful==='استلام';
   const payment = radioVal('pay'), region = pick ? PICKUP_REGION : radioVal('reg'), delivery_date = deliveryDate();
-  if (phone.length < 9) return msg('oMsg','رقم الجوال ناقص');
+  if (!phoneCheck(phone, 'oMsg')) return;
   if (!desc) return msg('oMsg','اكتبي وصف الطلب');
   if (amount === null || amount <= 0) return msg('oMsg','اكتبي مبلغ الطلب');
   if (!payment) return msg('oMsg','اختاري وسيلة الدفع');
@@ -747,7 +776,7 @@ $('oSave').onclick = async () => {
     const when = dayLabel(delivery_date);
     const note = data.approval==='بانتظار الاعتماد' ? `تم حفظ ${data.code} — بانتظار اعتماد الأدمن لأن تاريخ التحويل سابق` : `تم حفظ الطلب ${data.code} — تسليم ${when}`;
     toast(note); msg('oMsg', note, true);
-    ['oPhone','oAmount','oDesc','oRegionOther','oTxn','oReceipt'].forEach(id => $(id).value='');
+    ['oPhone','oAmount','oDesc','oRegionOther','oTxn','oReceipt'].forEach(id => $(id).value=''); $('oPhoneHint').textContent='';
     document.querySelectorAll('input[name="pay"],input[name="reg"]').forEach(r => r.checked=false);
     $('oDate').value = today(); dateHint(); $('oPaid').value = today(); paidHint();
     ['oReceiptWrap','oTxnWrap','oRegionOtherWrap'].forEach(id => $(id).classList.add('hidden'));
@@ -777,7 +806,7 @@ async function loadOrders(){
   if (OVIEW==='pending') q = q.in('status', OPEN_ST);
   if (OVIEW==='upcoming') q = q.gt('delivery_date', today());
   if (OVIEW==='range') q = q.gte('paid_date', $('oFrom').value).lte('paid_date', $('oTo').value);
-  const [{ data, error }] = await Promise.all([ q.order(OVIEW==='reg'||OVIEW==='range' ? 'created_at' : 'delivery_date', { ascending: !(OVIEW==='reg'||OVIEW==='range') }).limit(5000), loadHero(), loadAlerts() ]);
+  const [{ data, error }] = await Promise.all([ q.order(OVIEW==='reg'||OVIEW==='range' ? 'created_at' : 'delivery_date', { ascending: !(OVIEW==='reg'||OVIEW==='range') }).limit(5000), loadHero(), loadAlerts(), loadBadPhones() ]);
   if (error) toast('خطأ في جلب الطلبات');
   ORDERS = data||[];
   renderOrders();
@@ -833,6 +862,26 @@ $('alList').onclick = e => {
   $('oSearch').value = li.dataset.go; loadOrders();
 };
 setInterval(() => { if (ME.role) loadAlerts(); }, 5*60*1000);
+
+/* ================== طلبات رقم جوالها غلط ================== */
+async function loadBadPhones(){
+  const { data, error } = await sb.from('wa_orders').select('id,code,phone,paid_date,created_at,status,approval').not('phone','match','^05[0-9]{8}$').order('id',{ascending:false}).limit(500);
+  const list = (data||[]).filter(o => phoneBad(o.phone) && o.status!=='ملغي' && o.approval!=='مرفوض');
+  if (error || !list.length){ $('badPh').classList.add('hidden'); return; }
+  $('bpTitle').innerHTML = `<i class="al-dot bad"></i>${list.length} طلب رقم الجوال فيه غلط — ${isAdmin() ? 'اضغط على الطلب وعدّل الرقم' : 'راجعي الرقم مع العميل وبلّغي الإدارة بالرقم الصحيح'}`;
+  $('bpList').innerHTML = list.map(o => `<li class="late" data-id="${o.id}" data-code="${esc(o.code)}" data-day="${o.paid_date||fmtDate(o.created_at)}"><span class="when">${esc(o.phone)}</span><span class="what">${esc(o.code)}</span><span class="todo">${esc(phoneIssue(o.phone))}</span></li>`).join('');
+  $('badPh').classList.remove('hidden');
+}
+$('bpHead').onclick = () => { const c = $('badPh').classList.toggle('closed'); $('bpHead').setAttribute('aria-expanded', !c); };
+$('bpList').onclick = async e => {
+  const li = e.target.closest('li'); if (!li) return;
+  showTab('orders');
+  OVIEW = 'range'; document.querySelectorAll('#oView button').forEach(x => x.classList.toggle('on', x.dataset.v==='range'));
+  document.querySelectorAll('.rangeF').forEach(x => x.classList.remove('hidden'));
+  $('oFrom').value = $('oTo').value = li.dataset.day; $('oSearch').value = li.dataset.code;
+  await loadOrders();
+  if (isAdmin()) openEdit(li.dataset.id);
+};
 function renderOrders(){
   const q = arDigits($('oSearch').value.trim()).toUpperCase();
   const qp = normPhone(q);
@@ -845,7 +894,7 @@ function renderOrders(){
   $('oRows').innerHTML = list.length ? list.map(o => `<tr class="${OPEN_ST.includes(o.status) && o.delivery_date < t ? 'late' : ''}">
     <td><b>${o.code}</b>${o.approval!=='معتمد'?` <span class="stp ${o.approval==='مرفوض'?'st-cancel':'st-prep'}" title="${esc(o.reject_reason||'')}">${o.approval}${o.reject_reason?': '+esc(o.reject_reason):''}</span>`:''}${late(o)}${o.order_type!=='عادي'?` <span class="tag violet">${esc(o.order_type)}</span>`:''}</td>
     <td><span class="tag ${o.delivery_date===t?'blue':o.delivery_date>t?'violet':''}">${dayLabel(o.delivery_date)}</span>${o.fulfillment==='استلام'?' <span class="tag pick">استلام</span>':''}</td>
-    <td class="num"><a class="link" href="https://wa.me/966${esc(o.phone.replace(/^0/,''))}" target="_blank" rel="noopener">${esc(o.phone)}</a></td>
+    <td class="num"><a class="link" href="https://wa.me/966${esc(o.phone.replace(/^0/,''))}" target="_blank" rel="noopener">${esc(o.phone)}</a>${phoneTag(o.phone)}</td>
     <td class="desc">${esc(o.description)}${o.source?` <span class="tag rose">${esc(o.source)}</span>`:''}</td>
     <td class="num"><b>${money(o.amount)}</b></td>
     <td><span class="pay pay-${{'تمارا':'tm','تابي':'tb','تحويل بنكي':'bk'}[o.payment]}">${esc(o.payment)}</span></td>
@@ -916,7 +965,7 @@ $('eCancel').onclick = () => $('editDlg').close();
 $('eSave').onclick = async () => {
   const phone = normPhone($('ePhone').value), amount = num($('eAmount').value), desc = $('eDesc').value.trim();
   const pick = $('eFul').value==='استلام';
-  if (phone.length < 9) return msg('eMsg','رقم الجوال ناقص');
+  if (!phoneCheck(phone, 'eMsg')) return;
   if (!desc) return msg('eMsg','وصف الطلب فاضي');
   if (amount === null || amount <= 0) return msg('eMsg','المبلغ غير صحيح');
   if (!pick && $('eReg').value==='أخرى' && !$('eRegOther').value.trim()) return msg('eMsg','اكتب اسم المنطقة');
@@ -969,7 +1018,7 @@ $('dSave').onclick = async () => {
 /* ================== العملاء المحتملين ================== */
 $('leSave').onclick = async () => {
   const phone = normPhone($('lePhone').value);
-  if (phone.length < 9) return msg('leMsg','رقم الجوال ناقص');
+  if (!phoneCheck(phone, 'leMsg')) return;
   $('leSave').disabled = true;
   const { error } = await sb.from('wa_leads').insert({ phone, interest:$('leInterest').value, note:$('leNote').value.trim()||null });
   $('leSave').disabled = false;
@@ -989,7 +1038,7 @@ async function loadLeads(){
   const conv = leads.filter(l=>l.converted).length;
   stats('leStats', [[leads.length,'عميل محتمل'],[conv,'تحوّل لطلب'],[leads.length?Math.round(conv/leads.length*100)+'%':'—','نسبة التحويل']]);
   $('leRows').innerHTML = leads.length ? leads.map(l => `<tr>
-    <td class="num">${fmtDT(l.created_at)}</td><td class="num">${esc(l.phone)}</td><td>${esc(l.interest)}</td><td class="desc">${esc(l.note)}</td>
+    <td class="num">${fmtDT(l.created_at)}</td><td class="num">${esc(l.phone)}${phoneTag(l.phone)}</td><td>${esc(l.interest)}</td><td class="desc">${esc(l.note)}</td>
     <td>${l.converted?`<span class="tag">طلب ${l.converted}</span>`:'<span class="tag warn">لم يطلب</span>'}</td>
     ${isAdmin()?`<td><button class="btn ghost small" data-del-lead="${l.id}">حذف</button></td>`:''}</tr>`).join('')
     : `<tr><td colspan="6" class="empty">ما فيه عملاء محتملين مسجلين في هذي الفترة.</td></tr>`;
@@ -1002,6 +1051,7 @@ $('cSave').onclick = async () => {
   const details = $('cDetails').value.trim();
   if (!$('cOrder').value.trim()) return msg('cMsg','اكتبي رقم الطلب');
   if (!details) return msg('cMsg','اكتبي تفاصيل الشكوى');
+  if ($('cPhone').value.trim() && !phoneCheck(normPhone($('cPhone').value), 'cMsg')) return;
   $('cSave').disabled = true;
   try{
     const image_path = await upload($('cImage').files[0], 'complaints');
@@ -1074,7 +1124,7 @@ function renderCustomers(){
   const q = normPhone($('cuSearch').value);
   const list = CUSTOMERS.filter(c => !q || c.phone.includes(q));
   $('cuRows').innerHTML = list.length ? list.slice(0,500).map(c => `<tr>
-    <td class="num"><b>${esc(c.phone)}</b></td><td class="num">${c.n}</td><td class="num"><b>${money(c.total)}</b></td><td class="num">${money(c.total/c.n)}</td>
+    <td class="num"><b>${esc(c.phone)}</b>${phoneTag(c.phone)}</td><td class="num">${c.n}</td><td class="num"><b>${money(c.total)}</b></td><td class="num">${money(c.total/c.n)}</td>
     <td class="num">${fmtDate(c.first)}</td><td class="num">${fmtDate(c.last)}</td><td>${esc(topKey(c.regions))}</td></tr>`).join('')
     : `<tr><td colspan="7" class="empty">ما فيه عملاء بعد.</td></tr>`;
 }
