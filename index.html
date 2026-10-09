@@ -369,7 +369,7 @@ details.rep[open] summary{margin-bottom:12px}
       <div class="field hidden" id="oRegionOtherWrap"><label for="oRegionOther">اسم المنطقة</label><input id="oRegionOther"></div>
       <div class="field"><label for="oPaid">تاريخ التحويل</label><input id="oPaid" type="date"><small class="hint" id="oPaidHint">اليوم</small></div>
       <div class="field"><label for="oDate">تاريخ التسليم</label><input id="oDate" type="date"><small class="hint" id="oDateHint">اليوم</small></div>
-      <div class="field dtime hidden"><label for="oTime">وقت التسليم / الاستلام</label><input id="oTime" type="time"><small class="hint">متى العميل يستلم الطلب</small></div>
+      <div class="field rtime hidden"><label for="oRecv">وقت استقبال الطلب</label><input id="oRecv" type="time"><small class="hint">متى العميل طلب منك (في يوم التحويل)</small></div>
       <div class="field hidden" id="oReceiptWrap"><label for="oReceipt">صورة التحويل <span class="opt">(اختياري)</span></label><input id="oReceipt" type="file" accept="image/*,application/pdf"></div>
       <div class="field hidden" id="oTxnWrap"><label for="oTxn">رقم العملية <span class="opt">(اختياري)</span></label><input id="oTxn"></div>
     </div>
@@ -560,7 +560,7 @@ details.rep[open] summary{margin-bottom:12px}
     <div class="field" id="eRegOtherWrap"><label for="eRegOther">اسم المنطقة</label><input id="eRegOther"></div>
     <div class="field"><label for="ePaid">تاريخ التحويل</label><input id="ePaid" type="date"></div>
     <div class="field"><label for="eDate">تاريخ التسليم</label><input id="eDate" type="date"></div>
-    <div class="field dtime hidden"><label for="eTime">وقت التسليم</label><input id="eTime" type="time"></div>
+    <div class="field rtime hidden"><label for="eRecv">وقت استقبال الطلب</label><input id="eRecv" type="datetime-local"></div>
     <div class="field"><label for="eType">نوع الطلب</label><select id="eType"><option>عادي</option><option>مناسبة / حفلة</option><option>مسكة عروس</option></select></div>
     <div class="field"><label for="eSource">العميل</label><select id="eSource"><option value="">—</option><option>عميل جديد</option><option>عميل سابق</option><option>توصية</option><option>ستوري</option><option>إعلان</option></select></div>
     <div class="field"><label for="eStatus">الحالة</label><select id="eStatus"><option>قيد التجهيز</option><option>تم التجهيز</option><option>تم التوصيل</option><option>تم الاستلام</option><option>ملغي</option></select></div>
@@ -585,7 +585,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_1Lcx6NE0zKb-xrvH1K4cYA_DeJCaJd7';   //
 const PICKUP_REGION = 'أبها';   // منطقة المحل — طلبات الاستلام تنحفظ عليها
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth:{ storageKey:'dm-whatsapp-auth' } });  // جلسة مستقلة عن نظام المشتريات
 const $ = id => document.getElementById(id);
-let ME = { email:'', name:'', role:'' }, HAS_TIME = false;
+let ME = { email:'', name:'', role:'' }, HAS_RECV = false;
 
 /* ================== أدوات ================== */
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -628,8 +628,9 @@ const endISO = day => { const d = new Date(day + 'T00:00:00'); d.setDate(d.getDa
 const fmtTime = iso => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 const fmtDate = iso => ymd(new Date(iso));
 // وقت التسليم: "16:30:00" ← "4:30م"
-const fmtT = t => { if (!t) return ''; const [h,m] = t.split(':').map(Number); return `${h%12||12}:${pad(m)}${h<12?'ص':'م'}`; };
-const tTag = o => o.delivery_time ? ` <span class="tag">${fmtT(o.delivery_time)}</span>` : '';
+// وقت استقبال الطلب من العميل بنظام 12 ساعة: "4:30م"
+const fmt12 = iso => { if (!iso) return ''; const d = new Date(iso), h = d.getHours(); return `${h%12||12}:${pad(d.getMinutes())}${h<12?'ص':'م'}`; };
+const rTag = o => o.received_at ? ` <span class="tag" title="وقت استقبال الطلب من العميل">استُقبل ${fmt12(o.received_at)}</span>` : '';
 const fmtDT = iso => `${fmtDate(iso)} ${fmtTime(iso)}`;
 const isAdmin = () => ME.role === 'admin';
 function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2200); }
@@ -663,9 +664,9 @@ async function boot(){
   const { data, error } = await sb.from('wa_profiles').select('*').ilike('email', email).maybeSingle();
   if (error || !data){ await sb.auth.signOut(); showLogin('هذا الحساب ما له صلاحية على النظام. كلّم الأدمن.'); return; }
   ME = data;
-  // عمود وقت التسليم: نخفي الخانة لين ينضاف في القاعدة، عشان ما يتعطل الحفظ
-  HAS_TIME = !(await sb.from('wa_orders').select('delivery_time').limit(1)).error;
-  document.querySelectorAll('.dtime').forEach(el => el.classList.toggle('hidden', !HAS_TIME));
+  // عمود وقت الاستقبال: نخفي الخانة لين ينضاف في القاعدة، عشان ما يتعطل الحفظ
+  HAS_RECV = !(await sb.from('wa_orders').select('received_at').limit(1)).error;
+  document.querySelectorAll('.rtime').forEach(el => el.classList.toggle('hidden', !HAS_RECV));
   $('whoName').textContent = `${data.name} · ${isAdmin() ? 'أدمن' : 'موظفة'}`;
   document.querySelectorAll('.adm').forEach(el => el.classList.toggle('hidden', !isAdmin()));
   $('loginView').classList.add('hidden'); $('appView').classList.remove('hidden');
@@ -772,9 +773,11 @@ $('oSave').onclick = async () => {
   if (!region) return msg('oMsg','اختاري المنطقة');
   if (!pick && region==='أخرى' && !$('oRegionOther').value.trim()) return msg('oMsg','اكتبي اسم المنطقة');
   if (!delivery_date) return msg('oMsg','اختاري تاريخ التسليم');
-  if (HAS_TIME && !$('oTime').value) return msg('oMsg','اختاري وقت التسليم');
   const paid_date = $('oPaid').value;
   if (!paid_date || paid_date > today()) return msg('oMsg','تاريخ التحويل غير صحيح');
+  const recv = HAS_RECV && $('oRecv').value ? new Date(`${$('oPaid').value}T${$('oRecv').value}`) : null;
+  if (HAS_RECV && !recv) return msg('oMsg','اكتبي وقت استقبال الطلب');
+  if (recv && recv > new Date()) return msg('oMsg','وقت الاستقبال لسّا ما جا — تأكدي من الوقت');
   $('oSave').disabled = true;
   try{
     const receipt_path = payment==='تحويل بنكي' ? await upload($('oReceipt').files[0], 'receipts') : null;
@@ -782,13 +785,13 @@ $('oSave').onclick = async () => {
       region_other: !pick && region==='أخرى' ? $('oRegionOther').value.trim() : null,
       fulfillment: ful, order_type:$('oType').value, source:$('oSource').value||null, status:$('oStatus').value,
       txn_ref: payment!=='تحويل بنكي' ? ($('oTxn').value.trim()||null) : null, receipt_path };
-    if (HAS_TIME) row.delivery_time = $('oTime').value;
+    if (recv) row.received_at = recv.toISOString();
     const { data, error } = await sb.from('wa_orders').insert(row).select('code,approval').single();
     if (error) throw error;
     const when = dayLabel(delivery_date);
-    const note = data.approval==='بانتظار الاعتماد' ? `تم حفظ ${data.code} — بانتظار اعتماد الأدمن لأن تاريخ التحويل سابق` : `تم حفظ الطلب ${data.code} — تسليم ${when}${HAS_TIME ? ' ' + fmtT($('oTime').value) : ''}`;
+    const note = data.approval==='بانتظار الاعتماد' ? `تم حفظ ${data.code} — بانتظار اعتماد الأدمن لأن تاريخ التحويل سابق` : `تم حفظ الطلب ${data.code} — تسليم ${when}`;
     toast(note); msg('oMsg', note, true);
-    ['oPhone','oAmount','oDesc','oRegionOther','oTxn','oReceipt','oTime'].forEach(id => $(id).value=''); $('oPhoneHint').textContent='';
+    ['oPhone','oAmount','oDesc','oRegionOther','oTxn','oReceipt','oRecv'].forEach(id => $(id).value=''); $('oPhoneHint').textContent='';
     document.querySelectorAll('input[name="pay"],input[name="reg"]').forEach(r => r.checked=false);
     $('oDate').value = today(); dateHint(); $('oPaid').value = today(); paidHint();
     ['oReceiptWrap','oTxnWrap','oRegionOtherWrap'].forEach(id => $(id).classList.add('hidden'));
@@ -819,7 +822,6 @@ async function loadOrders(){
   if (OVIEW==='upcoming') q = q.gt('delivery_date', today());
   if (OVIEW==='range') q = q.gte('paid_date', $('oFrom').value).lte('paid_date', $('oTo').value);
   q = q.order(OVIEW==='reg'||OVIEW==='range' ? 'created_at' : 'delivery_date', { ascending: !(OVIEW==='reg'||OVIEW==='range') });
-  if (HAS_TIME && !(OVIEW==='reg'||OVIEW==='range')) q = q.order('delivery_time', { ascending:true, nullsFirst:false });
   const [{ data, error }] = await Promise.all([ q.limit(5000), loadHero(), loadAlerts(), loadBadPhones(), loadReminder() ]);
   if (error) toast('خطأ في جلب الطلبات');
   ORDERS = data||[];
@@ -847,7 +849,7 @@ async function loadHero(){
 /* ================== التنبيهات ================== */
 async function loadAlerts(){
   const t = today(), lim = addDays(2);
-  const { data } = await sb.from('wa_orders').select('*').in('status', OPEN_ST).lte('delivery_date', lim).order('delivery_date').limit(200);
+  const { data } = await sb.from('wa_orders').select('id,code,phone,description,order_type,status,delivery_date,created_at,paid_date,approval,fulfillment').in('status', OPEN_ST).lte('delivery_date', lim).order('delivery_date').limit(200);
   // المجدولة فقط: موعد تسليمها بعد يوم تسجيلها
   const list = (data||[]).filter(o => o.delivery_date > o.paid_date && o.approval!=='مرفوض');
   if (!list.length){ $('alerts').classList.add('hidden'); return; }
@@ -860,7 +862,7 @@ async function loadAlerts(){
   $('alTitle').innerHTML = `<i class="al-dot"></i>طلبات مجدولة: ${parts.join(' · ')}${special.length ? ` <span class="al-sp">${special.length} مسكة/مناسبة</span>` : ''}`;
   $('alList').innerHTML = list.map(o => {
     const d = o.delivery_date, isLate = d < t, ready = o.status==='تم التجهيز';
-    const when = (isLate ? `متأخر (${dayLabel(d)})` : dayLabel(d)) + (o.delivery_time ? ' ' + fmtT(o.delivery_time) : '');
+    const when = isLate ? `متأخر (${dayLabel(d)})` : dayLabel(d);
     const pick = o.fulfillment==='استلام';
     const todo = isLate ? (pick ? 'موعد استلامه فات! تواصلي مع العميل' : 'موعده فات! تأكدي من التسليم') : d===t ? (pick ? (ready ? 'جاهز — العميل بيستلمه اليوم' : 'لازم يتجهز — العميل بيستلمه اليوم') : (ready ? 'جاهز — لازم يتوصّل اليوم' : 'لازم يتجهز ويتوصّل اليوم')) : (ready ? (pick ? 'جاهز للاستلام' : 'جاهز للتوصيل') : `لازم يتجهز لـ${dayLabel(d)}${pick?' (استلام)':''}`);
     return `<li class="${isLate?'late':''}" data-go="${o.code}"><span class="when">${when}</span>${o.order_type!=='عادي'?`<span class="kind">${esc(o.order_type)}</span>`:''}<span class="what">${esc(o.description)}</span><span>${o.code} · ${esc(o.phone)}</span><span class="todo">${todo}</span></li>`;
@@ -917,8 +919,8 @@ function renderOrders(){
   stats('oStats', [[live.length,'طلب','blue'],[money(sum(live)),'المبلغ','green'],[pend.length,'لم يُسلّم بعد','amber'],[money(live.length?sum(live)/live.length:0),'متوسط الطلب','violet']]);
   const t = today();
   $('oRows').innerHTML = list.length ? list.map(o => `<tr class="${OPEN_ST.includes(o.status) && o.delivery_date < t ? 'late' : ''}">
-    <td><b>${o.code}</b>${o.approval!=='معتمد'?` <span class="stp ${o.approval==='مرفوض'?'st-cancel':'st-prep'}" title="${esc(o.reject_reason||'')}">${o.approval}${o.reject_reason?': '+esc(o.reject_reason):''}</span>`:''}${late(o)}${o.order_type!=='عادي'?` <span class="tag violet">${esc(o.order_type)}</span>`:''}</td>
-    <td><span class="tag ${o.delivery_date===t?'blue':o.delivery_date>t?'violet':''}">${dayLabel(o.delivery_date)}</span>${tTag(o)}${o.fulfillment==='استلام'?' <span class="tag pick">استلام</span>':''}</td>
+    <td><b>${o.code}</b>${rTag(o)}${o.approval!=='معتمد'?` <span class="stp ${o.approval==='مرفوض'?'st-cancel':'st-prep'}" title="${esc(o.reject_reason||'')}">${o.approval}${o.reject_reason?': '+esc(o.reject_reason):''}</span>`:''}${late(o)}${o.order_type!=='عادي'?` <span class="tag violet">${esc(o.order_type)}</span>`:''}</td>
+    <td><span class="tag ${o.delivery_date===t?'blue':o.delivery_date>t?'violet':''}">${dayLabel(o.delivery_date)}</span>${o.fulfillment==='استلام'?' <span class="tag pick">استلام</span>':''}</td>
     <td class="num"><a class="link" href="https://wa.me/966${esc(o.phone.replace(/^0/,''))}" target="_blank" rel="noopener">${esc(o.phone)}</a>${phoneTag(o.phone)}</td>
     <td class="desc">${esc(o.description)}${o.source?` <span class="tag rose">${esc(o.source)}</span>`:''}</td>
     <td class="num"><b>${money(o.amount)}</b></td>
@@ -957,8 +959,8 @@ $('oRows').addEventListener('click', async e => {
   if (d && confirm('حذف الطلب نهائياً؟')){ const { error } = await sb.from('wa_orders').delete().eq('id', d); toast(error?'ما انحذف':'تم الحذف'); loadOrders(); }
 });
 $('oCsv').onclick = () => {
-  const head = ['الرقم','تاريخ التحويل','تاريخ التسجيل','وقت التسجيل','تاريخ التسليم','وقت التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق','الاعتماد'];
-  const rows = ORDERS.map(o => [o.code, o.paid_date, fmtDate(o.created_at), fmtTime(o.created_at), o.delivery_date, fmtT(o.delivery_time), o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا', o.approval]);
+  const head = ['الرقم','تاريخ التحويل','تاريخ التسجيل','وقت التسجيل','وقت الاستقبال','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق','الاعتماد'];
+  const rows = ORDERS.map(o => [o.code, o.paid_date, fmtDate(o.created_at), fmtTime(o.created_at), o.received_at ? fmtTime(o.received_at) : '', o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا', o.approval]);
   const csv = '\ufeff' + [head, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
   a.download = `طلبات-الواتس-${today()}.csv`; a.click();
@@ -982,7 +984,7 @@ function openEdit(id){
   $('ePhone').value = o.phone; $('eAmount').value = o.amount; $('eDesc').value = o.description;
   $('ePay').value = o.payment; $('eTxn').value = o.txn_ref||'';
   $('eFul').value = o.fulfillment||'توصيل'; $('eReg').value = o.region; $('eRegOther').value = o.region_other||'';
-  $('eDate').value = o.delivery_date; $('eTime').value = (o.delivery_time||'').slice(0,5); $('eType').value = o.order_type; $('eSource').value = o.source||''; $('eStatus').value = o.status;
+  $('eDate').value = o.delivery_date; $('eRecv').value = o.received_at ? `${fmtDate(o.received_at)}T${fmtTime(o.received_at)}` : ''; $('eType').value = o.order_type; $('eSource').value = o.source||''; $('eStatus').value = o.status;
   $('eReceipt').value = ''; $('eMsg').textContent = '';
   eSync(); $('editDlg').showModal();
 }
@@ -1004,7 +1006,7 @@ $('eSave').onclick = async () => {
       fulfillment:$('eFul').value, region: pick ? PICKUP_REGION : $('eReg').value,
       region_other: !pick && $('eReg').value==='أخرى' ? $('eRegOther').value.trim() : null,
       delivery_date:$('eDate').value, paid_date:$('ePaid').value, order_type:$('eType').value, source:$('eSource').value||null, status:st };
-    if (HAS_TIME) upd.delivery_time = $('eTime').value || null;
+    if (HAS_RECV) upd.received_at = $('eRecv').value ? new Date($('eRecv').value).toISOString() : null;
     const f = $('eReceipt').files[0];
     if (f) upd.receipt_path = await upload(f, 'receipts');
     const { error } = await sb.from('wa_orders').update(upd).eq('id', EDIT.id);
@@ -1235,7 +1237,7 @@ async function loadReports(){
   const dk = Object.keys(days);
   // أيام الأسبوع والساعات
   const wd = Array(7).fill(0), wdN = Array(7).fill(0), hr = Array(24).fill(0);
-  live.forEach(o => { const d = new Date(o.created_at), pd = new Date(o.paid_date+'T00:00:00').getDay(); wd[pd] += Number(o.amount); wdN[pd]++; if (fmtDate(o.created_at)===o.paid_date) hr[d.getHours()]++; });
+  live.forEach(o => { const d = new Date(o.created_at), pd = new Date(o.paid_date+'T00:00:00').getDay(); wd[pd] += Number(o.amount); wdN[pd]++; if (o.received_at) hr[new Date(o.received_at).getHours()]++; else if (fmtDate(o.created_at)===o.paid_date) hr[d.getHours()]++; });
   // أفضل العملاء
   const cm = {}; live.forEach(o => { const c = cm[o.phone] ||= { n:0, t:0 }; c.n++; c.t += Number(o.amount); });
   const topC = Object.entries(cm).sort((a,b)=>b[1].t-a[1].t).slice(0,10);
@@ -1321,8 +1323,8 @@ async function loadReports(){
   $('rCsv').onclick = () => exportCSV(REP_ORDERS, `تقرير-الواتس-${from}-${to}.csv`);
 }
 function exportCSV(list, name){
-  const head = ['الرقم','تاريخ التحويل','تاريخ التسجيل','وقت التسجيل','تاريخ التسليم','وقت التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق','الاعتماد'];
-  const rows = list.map(o => [o.code, o.paid_date, fmtDate(o.created_at), fmtTime(o.created_at), o.delivery_date, fmtT(o.delivery_time), o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا', o.approval]);
+  const head = ['الرقم','تاريخ التحويل','تاريخ التسجيل','وقت التسجيل','وقت الاستقبال','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق','الاعتماد'];
+  const rows = list.map(o => [o.code, o.paid_date, fmtDate(o.created_at), fmtTime(o.created_at), o.received_at ? fmtTime(o.received_at) : '', o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا', o.approval]);
   const csv = '\ufeff' + [head, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download = name; a.click();
 }
@@ -1367,7 +1369,7 @@ async function loadDayReport(){
     <div class="rep-head"><div><h2>تقرير الطلبات اليومي</h2><p class="sub">${WEEK[new Date(day+'T00:00:00').getDay()]} ${day} · طلبات الواتس المحوّلة في هذا اليوم</p></div></div>
     ${sumCards(list)}
     <section class="panel"><div class="tablewrap"><table><thead><tr><th>#</th><th>الرقم</th><th>وقت التسجيل</th><th>التسليم</th><th>الجوال</th><th>الوصف</th><th>المبلغ</th><th>الدفع</th><th>المنطقة</th><th>النوع</th><th>الحالة</th><th>التحقق</th></tr></thead><tbody>
-    ${list.length ? list.map((o,i)=>`<tr><td>${i+1}</td><td><b>${o.code}</b></td><td class="num">${fmtTime(o.created_at)}${late(o)}</td><td>${o.delivery_date===day?'نفس اليوم':`<span class="tag violet">${dayLabel(o.delivery_date)}</span>`}${o.fulfillment==='استلام'?' <span class="tag pick">استلام</span>':''}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td><span class="pay pay-${{'تمارا':'tm','تابي':'tb','تحويل بنكي':'bk'}[o.payment]}">${esc(o.payment)}</span></td><td>${esc(regName(o))}</td><td>${esc(o.order_type)}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'<span class="stp st-done">تم</span>':'<span class="stp st-prep">بانتظار</span>'}</td></tr>`).join('')
+    ${list.length ? list.map((o,i)=>`<tr><td>${i+1}</td><td><b>${o.code}</b></td><td class="num">${fmtTime(o.created_at)}${late(o)}${rTag(o)}</td><td>${o.delivery_date===day?'نفس اليوم':`<span class="tag violet">${dayLabel(o.delivery_date)}</span>`}${o.fulfillment==='استلام'?' <span class="tag pick">استلام</span>':''}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td><span class="pay pay-${{'تمارا':'tm','تابي':'tb','تحويل بنكي':'bk'}[o.payment]}">${esc(o.payment)}</span></td><td>${esc(regName(o))}</td><td>${esc(o.order_type)}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'<span class="stp st-done">تم</span>':'<span class="stp st-prep">بانتظار</span>'}</td></tr>`).join('')
       : `<tr><td colspan="12" class="empty">ما فيه طلبات في هذا اليوم.</td></tr>`}
     </tbody>${list.length?`<tfoot><tr><td colspan="6" data-label=""><b>الإجمالي (${list.length} طلب)</b></td><td class="num" data-label="المبلغ"><b>${money(total)}</b></td><td colspan="5" data-label=""></td></tr></tfoot>`:''}</table></div></section>
     ${cancelled.length?`<p class="sub">ملغي في هذا اليوم: ${cancelled.map(o=>o.code).join('، ')} (غير محسوب في المبيعات)</p>`:''}`;
