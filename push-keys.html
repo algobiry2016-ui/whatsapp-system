@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>مفاتيح الإشعارات</title>
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;background:#F7F4EF;color:#1C1C1C;margin:0;padding:24px 16px;line-height:1.7}
+  main{max-width:720px;margin:auto;background:#fff;border:1px solid #EDE5D8;border-radius:14px;padding:20px}
+  h1{font-size:1.3rem;margin:0 0 6px} p{color:#555;margin:0 0 14px}
+  button{background:#1C1C1C;color:#fff;border:0;border-radius:10px;padding:10px 18px;font-size:1rem;cursor:pointer}
+  .k{margin-top:14px} .k b{display:block;margin-bottom:4px;direction:ltr;text-align:right}
+  .row{display:flex;gap:8px} code{flex:1;direction:ltr;display:block;background:#F3ECE0;border-radius:8px;padding:8px 10px;word-break:break-all;font-size:.85rem}
+  .row button{padding:6px 12px;font-size:.85rem;background:#8A6B3A}
+  .warn{background:#FBEDEE;color:#A4474F;border-radius:8px;padding:10px 12px;margin-top:16px;font-size:.9rem}
+</style>
+</head>
+<body>
+<main>
+  <h1>مفاتيح إشعارات الجوال — مبيعات الواتس</h1>
+  <p>المفاتيح تتولد هنا في متصفحك وما تنرسل لأي مكان. انسخ الثلاثة وحطها في Supabase: Edge Functions ← Secrets، بنفس الأسماء.</p>
+  <button id="gen">توليد المفاتيح</button>
+  <div id="out"></div>
+  <div class="warn">احفظها مرة وحدة بس. لو ولّدت مفاتيح جديدة بعدين، الأجهزة اللي فعّلت الإشعارات لازم تفعّلها من جديد. ولا تشارك VAPID_PRIVATE ولا CRON_SECRET مع أحد.</div>
+</main>
+<script>
+const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const fromB64u = s => Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0));
+document.getElementById('gen').onclick = async () => {
+  const kp = await crypto.subtle.generateKey({ name:'ECDSA', namedCurve:'P-256' }, true, ['sign','verify']);
+  const j = await crypto.subtle.exportKey('jwk', kp.privateKey);
+  const pub = b64u(new Uint8Array([4, ...fromB64u(j.x), ...fromB64u(j.y)]));
+  const keys = { VAPID_PUBLIC: pub, VAPID_PRIVATE: j.d, CRON_SECRET: b64u(crypto.getRandomValues(new Uint8Array(24))) };
+  document.getElementById('out').innerHTML = Object.entries(keys).map(([k,v]) =>
+    `<div class="k"><b>${k}</b><div class="row"><code>${v}</code><button data-v="${v}">نسخ</button></div></div>`).join('');
+};
+document.getElementById('out').onclick = e => { const v = e.target.dataset.v; if (v) navigator.clipboard.writeText(v).then(() => { e.target.textContent = 'تم ✓'; }); };
+</script>
+</body>
+</html>
