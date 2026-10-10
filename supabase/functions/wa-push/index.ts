@@ -1,7 +1,8 @@
 // إشعارات الجوال لموظفات الواتس — تشغّلها الجدولة (pg_cron) في supabase/push.sql
-// المتغيرات (Edge Function Secrets): VAPID_PUBLIC و VAPID_PRIVATE و CRON_SECRET — تتولد من صفحة push-keys.html
+// المتغيرات (Edge Function Secrets): VAPID_PUBLIC و VAPID_PRIVATE — تتولد من صفحة push-keys.html
 // SUPABASE_URL و SUPABASE_SERVICE_ROLE_KEY تجي جاهزة من Supabase
-// لازم "Verify JWT" يكون مقفل للدالة، والحماية بـ CRON_SECRET
+// لازم "Verify JWT" يكون مقفل للدالة. الحماية بسر تولّده القاعدة في wa_push_config (ما يقراه إلا مفتاح الخدمة)
+// والجدولة ترسله في x-cron-secret
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import webpush from 'npm:web-push@3.6.7';
 
@@ -15,7 +16,9 @@ Deno.serve(async (req) => {
   // المفتاح العام للتطبيق (عام أصلًا، ما يحتاج سر)
   if (new URL(req.url).searchParams.get('job') === 'key')
     return new Response(Deno.env.get('VAPID_PUBLIC') || '', { headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'text/plain' } });
-  if (req.headers.get('x-cron-secret') !== Deno.env.get('CRON_SECRET')) return new Response('forbidden', { status: 403 });
+  const { data: cfg } = await sb.from('wa_push_config').select('v').eq('k', 'cron_secret').maybeSingle();
+  const given = req.headers.get('x-cron-secret');
+  if (!cfg?.v || given !== cfg.v) return new Response('forbidden', { status: 403 });
   const job = new URL(req.url).searchParams.get('job') || '';
   const today = new Date(Date.now() + RIYADH).toISOString().slice(0, 10);
   const dayStart = new Date(Date.parse(today + 'T00:00:00Z') - RIYADH).toISOString();
