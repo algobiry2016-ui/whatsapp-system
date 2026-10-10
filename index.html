@@ -219,6 +219,8 @@ tr.late td{background:#FFF6F7}
 .al-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);margin-inline-end:8px;vertical-align:middle;animation:pulse 2s infinite}
 @keyframes pulse{50%{opacity:.35}}
 .al-dot.bad{background:#A4474F}
+#dMiss{background:#FBEDEE;border-bottom-color:#E9C9CC} #dMiss .al-head{color:#A4474F}
+.offchk{margin:4px 0 12px;font-weight:600} #dhRows tr[data-day]{cursor:pointer}
 #remind{background:#FBEDEE;border-bottom-color:#E9C9CC} #remind .al-head{cursor:default;color:#A4474F;font-size:.95rem}
 .al-sp{border:1px solid var(--gold);color:#8A6B3A;border-radius:10px;padding:0 8px;font-size:.75rem;margin-inline-start:6px}
 .al-head .al-tog{transition:transform .2s}
@@ -331,6 +333,10 @@ details.rep[open] summary{margin-bottom:12px}
   <ul id="alList"></ul>
 </div>
 <div id="remind" class="alerts hidden" role="alert"><div class="al-head"><span><i class="al-dot bad"></i><span id="rmText"></span></span></div></div>
+<div id="dMiss" class="alerts hidden" role="alert">
+  <button class="al-head" id="dmHead" aria-expanded="true"><span id="dmTitle"></span><span class="al-tog">▾</span></button>
+  <ul id="dmList"></ul>
+</div>
 <div id="badPh" class="alerts closed hidden" role="status">
   <button class="al-head" id="bpHead" aria-expanded="false"><span id="bpTitle"></span><span class="al-tog">▾</span></button>
   <ul id="bpList"></ul>
@@ -413,6 +419,9 @@ details.rep[open] summary{margin-bottom:12px}
     <p class="sub">عدد الطلبات والمبلغ والعملاء المحتملين تنحسب تلقائي من تسجيلاتك.</p>
     <div class="toolbar"><div class="field"><label for="dDay">اليوم</label><input type="date" id="dDay"></div></div>
     <div class="stats" id="dAuto"></div>
+    <label class="vchk offchk"><input type="checkbox" id="dOff"> ما فيه نشاط هذا اليوم (إجازة أو غيره)</label>
+    <div class="grid hidden" id="dOffWrap"><div class="field"><label for="dOffReason">السبب</label><select id="dOffReason"><option>إجازة</option><option>ظرف طارئ</option><option>أخرى</option></select></div></div>
+    <div id="dCounts">
     <h3>الستوري</h3>
     <div class="grid">
       <div class="field"><label for="dStories">عدد الستوري المنشورة</label><input id="dStories" type="number" min="0" inputmode="numeric"></div>
@@ -426,9 +435,20 @@ details.rep[open] summary{margin-bottom:12px}
       <div class="field"><label for="dDelivery">عن التوصيل</label><input id="dDelivery" type="number" min="0" inputmode="numeric"></div>
       <div class="field"><label for="dOccasion">عن المناسبات والتنسيقات</label><input id="dOccasion" type="number" min="0" inputmode="numeric"></div>
       <div class="field"><label for="dOther">أخرى</label><input id="dOther" type="number" min="0" inputmode="numeric"></div>
-      <div class="field wide"><label for="dNotes">ملاحظات <span class="opt">(اختياري)</span></label><textarea id="dNotes"></textarea></div>
     </div>
+    </div>
+    <div class="grid"><div class="field wide"><label for="dNotes" id="dNotesLbl">ملاحظات <span class="opt">(اختياري)</span></label><textarea id="dNotes"></textarea></div></div>
     <div class="actions"><button class="btn" id="dSave">حفظ نشاط اليوم</button><span class="msg" id="dMsg"></span></div>
+  </section>
+  <section class="panel">
+    <h2>سجل النشاط</h2>
+    <p class="sub">المشاهدات والاستفسارات والعملاء المحتملين خلال فترة. اضغط على أي يوم لفتحه.</p>
+    <div class="toolbar">
+      <div class="field"><label for="dhFrom">من</label><input type="date" id="dhFrom"></div>
+      <div class="field"><label for="dhTo">إلى</label><input type="date" id="dhTo"></div>
+    </div>
+    <div class="stats" id="dhStats"></div>
+    <div class="tablewrap"><table><thead><tr><th>اليوم</th><th>الستوري</th><th>المشاهدات</th><th>الردود</th><th>الاستفسارات</th><th>عملاء محتملين</th><th>الطلبات</th><th>الحالة</th></tr></thead><tbody id="dhRows"></tbody></table></div>
   </section>
 </div>
 
@@ -703,7 +723,7 @@ $('pwSave').onclick = async () => {
 };
 
 /* ================== التبويبات ================== */
-const loaders = { orders:loadOrders, daily:loadDaily, leads:loadLeads, complaints:loadComplaints, customers:loadCustomers, reports:loadReportTab, approvals:loadApprovals };
+const loaders = { orders:loadOrders, daily:loadDailyTab, leads:loadLeads, complaints:loadComplaints, customers:loadCustomers, reports:loadReportTab, approvals:loadApprovals };
 function showTab(t){
   document.querySelectorAll('#tabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab===t); if (b.dataset.tab===t) $('curTab').textContent = b.textContent; });
   closeMenu();
@@ -715,7 +735,7 @@ $('menuBtn').onclick = () => { const o = $('tabs').classList.toggle('open'); $('
 $('tabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.act){ closeMenu(); $(b.dataset.act).click(); } else showTab(b.dataset.tab); };
 function initDates(){
   const t = today();
-  ['oFrom','oTo','leFrom','leTo','cFrom','cTo','dDay','oDate','oPaid'].forEach(id => $(id).value = t); dateHint(); paidHint();
+  ['oFrom','oTo','leFrom','leTo','cFrom','cTo','dDay','oDate','oPaid','dhTo'].forEach(id => $(id).value = t); $('dhFrom').value = addDays(-6); dateHint(); paidHint();
   $('oPaid').max = t; $('dDay').max = t; if (!isAdmin()) $('dDay').min = addDays(-7);
   refreshApprBadge();
   const d = new Date(); $('cReceived').value = `${t}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -836,7 +856,7 @@ async function loadOrders(){
   if (OVIEW==='upcoming') q = q.gt('delivery_date', today());
   if (OVIEW==='range') q = q.gte('paid_date', $('oFrom').value).lte('paid_date', $('oTo').value);
   q = q.order(OVIEW==='reg'||OVIEW==='range' ? 'created_at' : 'delivery_date', { ascending: !(OVIEW==='reg'||OVIEW==='range') });
-  const [{ data, error }] = await Promise.all([ q.limit(5000), loadHero(), loadAlerts(), loadBadPhones(), loadReminder() ]);
+  const [{ data, error }] = await Promise.all([ q.limit(5000), loadHero(), loadAlerts(), loadBadPhones(), loadReminder(), loadMissingDaily() ]);
   if (error) toast('خطأ في جلب الطلبات');
   ORDERS = data||[];
   renderOrders();
@@ -891,7 +911,7 @@ $('alList').onclick = e => {
   document.querySelectorAll('.rangeF').forEach(x => x.classList.add('hidden'));
   $('oSearch').value = li.dataset.go; loadOrders();
 };
-setInterval(() => { if (ME.role){ loadAlerts(); loadReminder(); } }, 5*60*1000);
+setInterval(() => { if (ME.role){ loadAlerts(); loadReminder(); loadMissingDaily(); } }, 5*60*1000);
 
 /* ================== تذكير تسجيل الطلبات ================== */
 const REMIND_HOUR = 17;   // من الساعة 5 العصر، إذا ما انسجل ولا طلب اليوم
@@ -1043,19 +1063,93 @@ async function loadDaily(){
   stats('dAuto', [[act.length,'طلبات اليوم','blue'],[money(act.reduce((s,o)=>s+Number(o.amount),0)),'مبيعات اليوم','green'],[leadsN||0,'عملاء محتملين','rose']]);
   for (const id in DAILY_MAP) $(id).value = row ? row[DAILY_MAP[id]] : '';
   $('dNotes').value = row?.notes || '';
+  $('dOff').checked = !!(row && isOffDay(row));
+  if ($('dOff').checked){
+    const [r0, ...rest] = row.notes.split(' — ');
+    const known = [...$('dOffReason').options].some(o => o.value===r0 && r0!=='أخرى');
+    $('dOffReason').value = known ? r0 : 'أخرى'; $('dNotes').value = known ? rest.join(' — ') : row.notes;
+    for (const id in DAILY_MAP) $(id).value = '';
+  }
+  offSync();
   $('dMsg').textContent = row ? `آخر تحديث: ${fmtDT(row.updated_at)}` : '';
   $('dMsg').className = 'msg';
 }
 $('dDay').onchange = loadDaily;
+function loadDailyTab(){ loadDaily(); loadDailyHistory(); }
+// يوم بدون نشاط (إجازة وغيره): كل الأرقام صفر والسبب في الملاحظات
+const isOffDay = r => !!r.notes && Object.values(DAILY_MAP).every(k => !Number(r[k]));
+const offTag = r => `<span class="tag" title="${esc(r.notes)}">ما فيه نشاط: ${esc(r.notes)}</span>`;
+function offSync(){
+  const off = $('dOff').checked;
+  $('dCounts').classList.toggle('hidden', off); $('dOffWrap').classList.toggle('hidden', !off);
+  $('dNotesLbl').innerHTML = off ? ($('dOffReason').value==='أخرى' ? 'اكتبي السبب' : 'ملاحظة <span class="opt">(اختياري)</span>') : 'ملاحظات <span class="opt">(اختياري)</span>';
+}
+$('dOff').onchange = offSync; $('dOffReason').onchange = offSync;
 $('dSave').onclick = async () => {
-  const row = { day:$('dDay').value, notes:$('dNotes').value.trim()||null, updated_at:new Date().toISOString(), updated_by:ME.email };
-  for (const id in DAILY_MAP) row[DAILY_MAP[id]] = int($(id).value);
+  const off = $('dOff').checked, note = $('dNotes').value.trim();
+  const row = { day:$('dDay').value, notes:note||null, updated_at:new Date().toISOString(), updated_by:ME.email };
+  for (const id in DAILY_MAP) row[DAILY_MAP[id]] = off ? 0 : int($(id).value);
+  if (off){
+    const reason = $('dOffReason').value;
+    if (reason==='أخرى' && !note) return msg('dMsg','اكتبي سبب عدم وجود نشاط');
+    row.notes = reason==='أخرى' ? note : reason + (note ? ' — ' + note : '');
+  } else {
+    if ($('dStories').value==='' || $('dViews').value==='') return msg('dMsg','اكتبي عدد الستوري والمشاهدات (ولو صفر)');
+    if (Object.values(DAILY_MAP).every(k => !row[k])) return msg('dMsg','كل الأرقام صفر — إذا ما فيه نشاط هذا اليوم، اختاري "ما فيه نشاط" واختاري السبب');
+  }
   $('dSave').disabled = true;
   const { error } = await sb.from('wa_daily').upsert(row);
   $('dSave').disabled = false;
   if (error) return msg('dMsg','ما انحفظ: '+error.message);
   toast('تم حفظ نشاط اليوم'); msg('dMsg','تم الحفظ', true);
+  loadDailyHistory(); loadMissingDaily();
 };
+
+/* ================== سجل النشاط خلال فترة ================== */
+async function loadDailyHistory(){
+  const from = $('dhFrom').value, to = $('dhTo').value;
+  if (!from || !to || from > to) return;
+  const [{ data:daily }, orders, { data:leads }] = await Promise.all([
+    sb.from('wa_daily').select('*').gte('day', from).lte('day', to),
+    fetchPaid(from, to),
+    sb.from('wa_leads').select('created_at').gte('created_at', startISO(from)).lt('created_at', endISO(to)).limit(5000)
+  ]);
+  const byDay = {}; (daily||[]).forEach(r => byDay[r.day] = r);
+  const ordN = countBy(orders.filter(o => o.status!=='ملغي'), 'paid_date');
+  const leadN = countBy(leads||[], l => fmtDate(l.created_at));
+  const inq = r => r.inq_price+r.inq_avail+r.inq_delivery+r.inq_occasion+r.inq_other;
+  const days = []; for (let d = to; d >= from; d = addDays(-1, d)) days.push(d);
+  const done = days.map(d => byDay[d]).filter(r => r && !isOffDay(r));
+  const sumK = f => done.reduce((s,r) => s + Number(f(r)||0), 0);
+  const missing = days.filter(d => !byDay[d] && d < today()).length;
+  stats('dhStats', [[sumK(r=>r.stories),'ستوري','ink'],[sumK(r=>r.views).toLocaleString('en-US'),'مشاهدات','blue'],[sumK(r=>r.replies),'ردود','sage'],[sumK(inq),'استفسارات','gold'],
+    [Object.values(leadN).reduce((a,b)=>a+b,0),'عملاء محتملين','rose'],[missing,'أيام ما انسجلت', missing ? 'amber' : 'teal']]);
+  const canOpen = d => isAdmin() || d >= addDays(-7);
+  $('dhRows').innerHTML = days.map(d => { const r = byDay[d], off = r && isOffDay(r);
+    const st = !r ? (d < today() ? '<span class="tag warn">لم يُسجل</span>' : '<span class="muted">لسّا</span>') : off ? offTag(r) : '<span class="tag">مسجّل</span>';
+    const v = k => r && !off ? Number(r[k]).toLocaleString('en-US') : '—';
+    return `<tr ${canOpen(d)?`data-day="${d}"`:''} class="${!r && d < today() ? 'late' : ''}"><td><b>${WEEK[new Date(d+'T00:00:00').getDay()]}</b> <span class="num muted">${d}</span></td>
+      <td class="num">${v('stories')}</td><td class="num">${v('views')}</td><td class="num">${v('replies')}</td><td class="num">${r && !off ? inq(r) : '—'}</td>
+      <td class="num">${leadN[d]||0}</td><td class="num">${ordN[d]||0}</td><td>${st}</td></tr>`; }).join('');
+}
+['dhFrom','dhTo'].forEach(id => $(id).onchange = loadDailyHistory);
+$('dhRows').onclick = e => { const tr = e.target.closest('tr[data-day]'); if (!tr) return; $('dDay').value = tr.dataset.day; loadDaily(); window.scrollTo({ top:0, behavior:'smooth' }); };
+
+/* ================== تنبيه أيام النشاط اللي ما انسجلت ================== */
+// آخر 7 أيام (اللي تقدر منال تعدّلها)، واليوم نفسه من الساعة 9 الليل
+async function loadMissingDaily(){
+  if (isAdmin()){ $('dMiss').classList.add('hidden'); return; }
+  const days = []; for (let i = 7; i >= 1; i--) days.push(addDays(-i));
+  if (new Date().getHours() >= 21) days.push(today());
+  const { data, error } = await sb.from('wa_daily').select('day').gte('day', days[0]);
+  const have = new Set((data||[]).map(r => r.day)), miss = days.filter(d => !have.has(d)).reverse();
+  if (error || !miss.length){ $('dMiss').classList.add('hidden'); return; }
+  $('dmTitle').innerHTML = `<i class="al-dot bad"></i>${ME.name}، النشاط اليومي ما انسجل ${miss.length===1 ? 'ليوم واحد' : `لـ ${miss.length} أيام`} — تسجيل المشاهدات والاستفسارات يوميًا مطلوب لمتابعة سير العمل`;
+  $('dmList').innerHTML = miss.map(d => `<li class="late" data-day="${d}"><span class="when">${dayLabel(d)}</span><span class="what">ما انسجل النشاط</span><span class="todo">سجّليه، وإذا كان إجازة أو ما فيه نشاط اختاري "ما فيه نشاط" واكتبي السبب</span></li>`).join('');
+  $('dMiss').classList.remove('hidden');
+}
+$('dmHead').onclick = () => { const c = $('dMiss').classList.toggle('closed'); $('dmHead').setAttribute('aria-expanded', !c); };
+$('dmList').onclick = e => { const li = e.target.closest('li'); if (!li) return; showTab('daily'); $('dDay').value = li.dataset.day; loadDaily(); };
 
 /* ================== العملاء المحتملين ================== */
 $('leSave').onclick = async () => {
@@ -1262,7 +1356,7 @@ async function loadReports(){
   const dailyRows = dk.slice().reverse().map(k => { const x=days[k], r=x.dr; const inq = r ? r.inq_price+r.inq_avail+r.inq_delivery+r.inq_occasion+r.inq_other : 0;
     const top = r ? topKey({'السعر':r.inq_price,'التوفر':r.inq_avail,'التوصيل':r.inq_delivery,'المناسبات':r.inq_occasion,'أخرى':r.inq_other}) : '—';
     return `<tr><td><b>${WEEK[new Date(k+'T00:00:00').getDay()]}</b> <span class="num muted">${k}</span></td><td class="num">${x.n}</td><td class="num"><b>${money(x.amt)}</b></td><td class="num">${x.n?money(x.amt/x.n):'—'}</td><td class="num">${x.del}</td>
-    <td class="num">${r?r.stories:'<span class="tag warn">لم يُسجل</span>'}</td><td class="num">${r?r.views:''}</td><td class="num">${r?r.replies:''}</td><td class="num">${x.leads}</td><td class="num">${r?inq:''}</td><td>${r&&inq?top:'—'}</td></tr>`; });
+    <td class="num">${r?(isOffDay(r)?offTag(r):r.stories):'<span class="tag warn">لم يُسجل</span>'}</td><td class="num">${r?r.views:''}</td><td class="num">${r?r.replies:''}</td><td class="num">${x.leads}</td><td class="num">${r?inq:''}</td><td>${r&&inq?top:'—'}</td></tr>`; });
   const compRows = complaints.map(c => `<tr><td class="num">${fmtDT(c.received_at)}</td><td><b>${esc(c.order_code)}</b></td><td>${esc(c.ctype)}</td><td class="desc">${esc(c.details)}</td><td class="desc">${esc(c.action)}</td><td>${esc(c.responsible||'لم يُحدد')}</td><td><span class="stp ${c.status==='تم الحل'?'st-done':'st-prep'}">${esc(c.status)}</span></td><td class="num">${c.closed_at?Math.max(0,Math.round((new Date(c.closed_at)-new Date(c.received_at))/3600000))+' ساعة':'—'}</td></tr>`);
   const unverRows = unver.map(o => `<tr><td><b>${o.code}</b></td><td class="num">${o.paid_date}</td><td class="num">${esc(o.phone)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(o.payment)}</td><td>${o.receipt_path?'إيصال مرفق':(o.txn_ref?esc(o.txn_ref):'<span class="tag warn">بدون إثبات</span>')}</td></tr>`);
   const leadRows = leads.map(l => `<tr><td class="num">${fmtDT(l.created_at)}</td><td class="num">${esc(l.phone)}</td><td>${esc(l.interest)}</td><td class="desc">${esc(l.note)}</td><td>${l.converted?`<span class="stp st-done">طلب ${l.converted}</span>`:'<span class="stp st-prep">لم يطلب</span>'}</td></tr>`);
