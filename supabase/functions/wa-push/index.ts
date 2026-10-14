@@ -50,8 +50,10 @@ Deno.serve(async (req) => {
     if (!c) return Response.json({ job, sent });
     const who = (staff || []).find((s) => s.email.toLowerCase() === String(c.created_by || '').toLowerCase())?.name;
     const details = String(c.details || '').slice(0, 160);
+    // شكوى بتاريخ سابق: نوضح تاريخها
+    const day = c.received_at ? new Date(Date.parse(c.received_at) + RIYADH).toISOString().slice(0, 10) : today;
     const msg: Msg = { title: 'شكوى جديدة 🔴', tab: 'complaints',
-      body: `طلب ${c.order_code} · ${c.ctype}${c.responsible ? ` · المتسبب: ${c.responsible}` : ''}\n${details}${who ? `\nسجّلتها: ${who}` : ''}` };
+      body: `طلب ${c.order_code} · ${c.ctype}${day !== today ? ` · بتاريخ ${day}` : ''}${c.responsible ? ` · المتسبب: ${c.responsible}` : ''}\n${details}${who ? `\nسجّلتها: ${who}` : ''}` };
     for (const p of (staff || []).filter((s) => s.role === 'admin')) await pushTo(p.email, msg);
     const tg = Deno.env.get('TELEGRAM_BOT_TOKEN'), chat = Deno.env.get('TELEGRAM_CHAT_ID');
     if (tg && chat) {

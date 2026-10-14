@@ -483,7 +483,7 @@ details.rep[open] summary{margin-bottom:12px}
     <div class="grid">
       <div class="field"><label for="cOrder">رقم الطلب</label><input id="cOrder" list="orderCodes" placeholder="WA-0012 أو رقم سلة"><datalist id="orderCodes"></datalist></div>
       <div class="field"><label for="cPhone">جوال العميل <span class="opt">(اختياري)</span></label><input id="cPhone" inputmode="tel"></div>
-      <div class="field"><label for="cReceived">وقت الاستلام</label><input id="cReceived" type="datetime-local"></div>
+      <div class="field"><label for="cReceived">تاريخ ووقت الشكوى</label><input id="cReceived" type="datetime-local"><small class="hint" id="cRecvHint">اليوم</small></div>
       <div class="field"><label for="cType">نوع الشكوى</label><select id="cType"><option>تأخير</option><option>جودة الورد</option><option>اختلاف عن الصورة</option><option>تلف أثناء التوصيل</option><option>خطأ في العنوان</option><option>تعامل المندوب</option><option>أخرى</option></select></div>
       <div class="field wide"><label for="cDetails">تفاصيل الشكوى</label><textarea id="cDetails"></textarea></div>
       <div class="field wide"><label for="cAction">الإجراء المتخذ</label><input id="cAction" placeholder="مثال: استبدال الباقة / تعويض / اعتذار"></div>
@@ -740,7 +740,7 @@ function initDates(){
   ['oFrom','oTo','leFrom','leTo','cFrom','cTo','dDay','oDate','oPaid','dhTo'].forEach(id => $(id).value = t); $('dhFrom').value = addDays(-6); dateHint(); paidHint();
   $('oPaid').max = t; $('dDay').max = t; if (!isAdmin()) $('dDay').min = addDays(-7);
   refreshApprBadge();
-  const d = new Date(); $('cReceived').value = `${t}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  cRecvNow();
   setPeriod('month'); $('rDay').value = t; $('rMonth').value = t.slice(0,7);
 }
 
@@ -1185,11 +1185,18 @@ async function loadLeads(){
 $('leRows').onclick = async e => { const d = e.target.dataset.delLead; if (d && confirm('حذف؟')){ await sb.from('wa_leads').delete().eq('id', d); loadLeads(); } };
 
 /* ================== الشكاوى ================== */
+// تاريخ الشكوى: الافتراضي الحين، وتقدر ترجعه لتاريخ قديم، بس مو للمستقبل
+const nowLocal = () => { const d = new Date(); return `${ymd(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function cRecvHint(){ const v = $('cReceived').value, d = v.slice(0,10); $('cRecvHint').textContent = !v ? '' : v > nowLocal() ? 'ما يصير تاريخ في المستقبل' : d===today() ? 'اليوم' : `${dayLabel(d)} — شكوى بتاريخ سابق`; $('cRecvHint').classList.toggle('warn', !!v && d !== today()); }
+function cRecvNow(){ $('cReceived').value = nowLocal(); $('cReceived').max = nowLocal(); cRecvHint(); }
+$('cReceived').oninput = cRecvHint;
 $('cSave').onclick = async () => {
   const details = $('cDetails').value.trim();
   if (!$('cOrder').value.trim()) return msg('cMsg','اكتبي رقم الطلب');
   if (!details) return msg('cMsg','اكتبي تفاصيل الشكوى');
   if (!$('cResp').value.trim()) return msg('cMsg','حددي المتسبب في الشكوى');
+  if (!$('cReceived').value) return msg('cMsg','اختاري تاريخ الشكوى');
+  if ($('cReceived').value > nowLocal()) return msg('cMsg','تاريخ الشكوى ما يصير في المستقبل');
   if ($('cPhone').value.trim() && !phoneCheck(normPhone($('cPhone').value), 'cMsg')) return;
   $('cSave').disabled = true;
   try{
@@ -1203,7 +1210,7 @@ $('cSave').onclick = async () => {
     if (error) throw error;
     toast('تم حفظ الشكوى'); msg('cMsg','تم حفظ الشكوى', true);
     ['cOrder','cPhone','cDetails','cAction','cNotes','cImage'].forEach(id => $(id).value='');
-    $('cStatus').value='قيد المتابعة'; $('cResp').value='';
+    $('cStatus').value='قيد المتابعة'; $('cResp').value=''; cRecvNow();
     loadComplaints();
   }catch(e){ msg('cMsg','ما انحفظت: '+(e.message||e)); }
   $('cSave').disabled = false;
