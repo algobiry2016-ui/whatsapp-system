@@ -489,7 +489,7 @@ details.rep[open] summary{margin-bottom:12px}
       <div class="field wide"><label for="cAction">الإجراء المتخذ</label><input id="cAction" placeholder="مثال: استبدال الباقة / تعويض / اعتذار"></div>
       <div class="field"><label for="cResp">المتسبب</label><input id="cResp" list="respList" placeholder="مثال: المندوب، المنسق، المورد"><datalist id="respList"></datalist></div>
       <div class="field"><label for="cStatus">حالة الشكوى</label><select id="cStatus"><option>قيد المتابعة</option><option>تم الحل</option></select></div>
-      <div class="field"><label for="cImage">صورة <span class="opt">(اختياري)</span></label><input id="cImage" type="file" accept="image/*"></div>
+      <div class="field"><label for="cImage">صور <span class="opt">(اختياري، لين 6 صور)</span></label><input id="cImage" type="file" accept="image/*" multiple><small class="hint" id="cImgHint"></small></div>
       <div class="field wide"><label for="cNotes">ملاحظات <span class="opt">(اختياري)</span></label><input id="cNotes"></div>
     </div>
     <div class="actions"><button class="btn" id="cSave">حفظ الشكوى</button><span class="msg" id="cMsg"></span></div>
@@ -1190,6 +1190,9 @@ const nowLocal = () => { const d = new Date(); return `${ymd(d)}T${pad(d.getHour
 function cRecvHint(){ const v = $('cReceived').value, d = v.slice(0,10); $('cRecvHint').textContent = !v ? '' : v > nowLocal() ? 'ما يصير تاريخ في المستقبل' : d===today() ? 'اليوم' : `${dayLabel(d)} — شكوى بتاريخ سابق`; $('cRecvHint').classList.toggle('warn', !!v && d !== today()); }
 function cRecvNow(){ $('cReceived').value = nowLocal(); $('cReceived').max = nowLocal(); cRecvHint(); }
 $('cReceived').oninput = cRecvHint;
+const MAX_IMGS = 6;
+const imgPaths = v => !v ? [] : v.startsWith('[') ? JSON.parse(v) : [v];
+$('cImage').onchange = () => { const n = $('cImage').files.length; $('cImgHint').textContent = !n ? '' : n > MAX_IMGS ? `اخترتي ${n} صور — الحد ${MAX_IMGS}` : n===1 ? 'صورة وحدة' : `${n} صور مختارة`; $('cImgHint').classList.toggle('warn', n > MAX_IMGS); };
 $('cSave').onclick = async () => {
   const details = $('cDetails').value.trim();
   if (!$('cOrder').value.trim()) return msg('cMsg','اكتبي رقم الطلب');
@@ -1197,10 +1200,13 @@ $('cSave').onclick = async () => {
   if (!$('cResp').value.trim()) return msg('cMsg','حددي المتسبب في الشكوى');
   if (!$('cReceived').value) return msg('cMsg','اختاري تاريخ الشكوى');
   if ($('cReceived').value > nowLocal()) return msg('cMsg','تاريخ الشكوى ما يصير في المستقبل');
+  if ($('cImage').files.length > MAX_IMGS) return msg('cMsg',`الحد ${MAX_IMGS} صور للشكوى`);
   if ($('cPhone').value.trim() && !phoneCheck(normPhone($('cPhone').value), 'cMsg')) return;
   $('cSave').disabled = true;
   try{
-    const image_path = await upload($('cImage').files[0], 'complaints');
+    // صورة وحدة تنحفظ مسار عادي، وأكثر من صورة تنحفظ قائمة JSON في نفس الخانة
+    const imgs = await Promise.all([...$('cImage').files].map(f => upload(f, 'complaints')));
+    const image_path = !imgs.length ? null : imgs.length===1 ? imgs[0] : JSON.stringify(imgs);
     const status = $('cStatus').value;
     const row = { order_code: arDigits($('cOrder').value.trim()).toUpperCase(), phone: normPhone($('cPhone').value)||null,
       received_at: new Date($('cReceived').value).toISOString(), ctype:$('cType').value, details,
@@ -1209,7 +1215,7 @@ $('cSave').onclick = async () => {
     const { error } = await sb.from('wa_complaints').insert(row);
     if (error) throw error;
     toast('تم حفظ الشكوى'); msg('cMsg','تم حفظ الشكوى', true);
-    ['cOrder','cPhone','cDetails','cAction','cNotes','cImage'].forEach(id => $(id).value='');
+    ['cOrder','cPhone','cDetails','cAction','cNotes','cImage'].forEach(id => $(id).value=''); $('cImgHint').textContent='';
     $('cStatus').value='قيد المتابعة'; $('cResp').value=''; cRecvNow();
     loadComplaints();
   }catch(e){ msg('cMsg','ما انحفظت: '+(e.message||e)); }
@@ -1232,7 +1238,7 @@ async function loadComplaints(){
     <td class="desc">${esc(c.details)}${c.notes?`<br><small style="color:var(--muted)">${esc(c.notes)}</small>`:''}</td>
     <td class="desc">${esc(c.action)}</td><td><input class="respin" data-cresp="${c.id}" value="${esc(c.responsible||'')}" placeholder="اكتبي المتسبب…"></td>
     <td><select class="stsel ${c.status==='تم الحل'?'st-done':'st-prep'}" data-cstatus="${c.id}"><option ${c.status==='قيد المتابعة'?'selected':''}>قيد المتابعة</option><option ${c.status==='تم الحل'?'selected':''}>تم الحل</option></select></td>
-    <td>${c.image_path?`<a class="link" data-file="${esc(c.image_path)}">عرض</a>`:''}</td>
+    <td>${imgPaths(c.image_path).map((p,i,a) => `<a class="link" data-file="${esc(p)}">${a.length>1 ? 'صورة '+(i+1) : 'عرض'}</a>`).join(' ')}</td>
     ${isAdmin()?`<td><button class="btn ghost small" data-del-c="${c.id}">حذف</button></td>`:''}</tr>`).join('')
     : `<tr><td colspan="10" class="empty">ما فيه شكاوى في هذي الفترة.</td></tr>`;
 }
