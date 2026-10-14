@@ -219,6 +219,10 @@ tr.late td{background:#FFF6F7}
 .al-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);margin-inline-end:8px;vertical-align:middle;animation:pulse 2s infinite}
 @keyframes pulse{50%{opacity:.35}}
 .al-dot.bad{background:#A4474F}
+.thumbs{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px} .thumbs:empty{display:none}
+.thumbs div{position:relative;width:76px;height:76px} .thumbs img{width:100%;height:100%;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.thumbs button{position:absolute;top:-7px;inset-inline-end:-7px;width:24px;height:24px;border-radius:50%;border:2px solid #fff;background:#A4474F;color:#fff;font-size:.75rem;line-height:1;padding:0;cursor:pointer}
+#cAddImg{display:inline-block;cursor:pointer} #cAddImg.hidden{display:none}
 #dMiss{background:#FBEDEE;border-bottom-color:#E9C9CC} #dMiss .al-head{color:#A4474F}
 .offchk{margin:4px 0 12px;font-weight:600} #dhRows tr[data-day]{cursor:pointer}
 #remind{background:#FBEDEE;border-bottom-color:#E9C9CC} #remind .al-head{cursor:default;color:#A4474F;font-size:.95rem}
@@ -489,7 +493,10 @@ details.rep[open] summary{margin-bottom:12px}
       <div class="field wide"><label for="cAction">الإجراء المتخذ</label><input id="cAction" placeholder="مثال: استبدال الباقة / تعويض / اعتذار"></div>
       <div class="field"><label for="cResp">المتسبب</label><input id="cResp" list="respList" placeholder="مثال: المندوب، المنسق، المورد"><datalist id="respList"></datalist></div>
       <div class="field"><label for="cStatus">حالة الشكوى</label><select id="cStatus"><option>قيد المتابعة</option><option>تم الحل</option></select></div>
-      <div class="field"><label for="cImage">صور <span class="opt">(اختياري، لين 6 صور)</span></label><input id="cImage" type="file" accept="image/*" multiple><small class="hint" id="cImgHint"></small></div>
+      <div class="field wide"><label>صور <span class="opt">(اختياري، لين 6 صور)</span></label>
+        <div class="thumbs" id="cThumbs"></div>
+        <input id="cImage" type="file" accept="image/*" multiple class="hidden">
+        <label for="cImage" class="btn ghost small" id="cAddImg">+ إضافة صورة</label> <small class="hint" id="cImgHint"></small></div>
       <div class="field wide"><label for="cNotes">ملاحظات <span class="opt">(اختياري)</span></label><input id="cNotes"></div>
     </div>
     <div class="actions"><button class="btn" id="cSave">حفظ الشكوى</button><span class="msg" id="cMsg"></span></div>
@@ -1192,7 +1199,23 @@ function cRecvNow(){ $('cReceived').value = nowLocal(); $('cReceived').max = now
 $('cReceived').oninput = cRecvHint;
 const MAX_IMGS = 6;
 const imgPaths = v => !v ? [] : v.startsWith('[') ? JSON.parse(v) : [v];
-$('cImage').onchange = () => { const n = $('cImage').files.length; $('cImgHint').textContent = !n ? '' : n > MAX_IMGS ? `اخترتي ${n} صور — الحد ${MAX_IMGS}` : n===1 ? 'صورة وحدة' : `${n} صور مختارة`; $('cImgHint').classList.toggle('warn', n > MAX_IMGS); };
+// الصور تنضاف على اللي قبلها (مو تستبدلها)، وتطلع مصغّرة مع زر ✕ للحذف قبل الحفظ
+let CIMGS = [];
+function cThumbs(){
+  $('cThumbs').innerHTML = CIMGS.map((f,i) => `<div><img src="${f._url}" alt="صورة ${i+1}"><button type="button" data-rm="${i}" aria-label="شيل الصورة ${i+1}">✕</button></div>`).join('');
+  const n = CIMGS.length;
+  $('cImgHint').textContent = !n ? '' : n >= MAX_IMGS ? `${n} صور — وصلتي الحد` : n===1 ? 'صورة وحدة' : `${n} صور`;
+  $('cAddImg').classList.toggle('hidden', n >= MAX_IMGS);
+  $('cAddImg').textContent = n ? '+ إضافة صورة ثانية' : '+ إضافة صورة';
+}
+function cImgsClear(){ CIMGS.forEach(f => URL.revokeObjectURL(f._url)); CIMGS = []; cThumbs(); }
+$('cImage').onchange = () => {
+  const add = [...$('cImage').files], room = MAX_IMGS - CIMGS.length;
+  if (add.length > room) toast(`الحد ${MAX_IMGS} صور — انضاف ${room} بس`);
+  add.slice(0, room).forEach(f => { f._url = URL.createObjectURL(f); CIMGS.push(f); });
+  $('cImage').value = ''; cThumbs();
+};
+$('cThumbs').onclick = e => { const i = e.target.dataset.rm; if (i===undefined) return; URL.revokeObjectURL(CIMGS[i]._url); CIMGS.splice(+i, 1); cThumbs(); };
 $('cSave').onclick = async () => {
   const details = $('cDetails').value.trim();
   if (!$('cOrder').value.trim()) return msg('cMsg','اكتبي رقم الطلب');
@@ -1200,12 +1223,11 @@ $('cSave').onclick = async () => {
   if (!$('cResp').value.trim()) return msg('cMsg','حددي المتسبب في الشكوى');
   if (!$('cReceived').value) return msg('cMsg','اختاري تاريخ الشكوى');
   if ($('cReceived').value > nowLocal()) return msg('cMsg','تاريخ الشكوى ما يصير في المستقبل');
-  if ($('cImage').files.length > MAX_IMGS) return msg('cMsg',`الحد ${MAX_IMGS} صور للشكوى`);
   if ($('cPhone').value.trim() && !phoneCheck(normPhone($('cPhone').value), 'cMsg')) return;
   $('cSave').disabled = true;
   try{
     // صورة وحدة تنحفظ مسار عادي، وأكثر من صورة تنحفظ قائمة JSON في نفس الخانة
-    const imgs = await Promise.all([...$('cImage').files].map(f => upload(f, 'complaints')));
+    const imgs = await Promise.all(CIMGS.map(f => upload(f, 'complaints')));
     const image_path = !imgs.length ? null : imgs.length===1 ? imgs[0] : JSON.stringify(imgs);
     const status = $('cStatus').value;
     const row = { order_code: arDigits($('cOrder').value.trim()).toUpperCase(), phone: normPhone($('cPhone').value)||null,
@@ -1215,7 +1237,7 @@ $('cSave').onclick = async () => {
     const { error } = await sb.from('wa_complaints').insert(row);
     if (error) throw error;
     toast('تم حفظ الشكوى'); msg('cMsg','تم حفظ الشكوى', true);
-    ['cOrder','cPhone','cDetails','cAction','cNotes','cImage'].forEach(id => $(id).value=''); $('cImgHint').textContent='';
+    ['cOrder','cPhone','cDetails','cAction','cNotes','cImage'].forEach(id => $(id).value=''); cImgsClear();
     $('cStatus').value='قيد المتابعة'; $('cResp').value=''; cRecvNow();
     loadComplaints();
   }catch(e){ msg('cMsg','ما انحفظت: '+(e.message||e)); }
