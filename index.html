@@ -356,7 +356,8 @@ details.rep[open] summary{margin-bottom:12px}
     <p class="sub">رقم الطلب يطلع تلقائي بعد الحفظ.</p>
     <div class="grid">
       <div class="field"><label for="oPhone">جوال العميل</label><input id="oPhone" inputmode="tel" placeholder="05xxxxxxxx"><small class="hint warn" id="oPhoneHint"></small></div>
-      <div class="field amount"><label for="oAmount">المبلغ (شامل التوصيل)</label><input id="oAmount" inputmode="decimal" placeholder="0"></div>
+      <div class="field amount"><label for="oAmount" id="oAmountLbl">المبلغ (شامل التوصيل)</label><input id="oAmount" inputmode="decimal" placeholder="0"><small class="hint" id="oTotalHint"></small></div>
+      <div class="field amount hidden" id="oFeeWrap"><label for="oFee">مبلغ التوصيل</label><input id="oFee" inputmode="decimal" placeholder="0"></div>
       <div class="field wide"><label for="oDesc">وصف الطلب</label><input id="oDesc" placeholder="مثال: باقة ورد جوري مع شوكولاتة"></div>
       <div class="field wide"><label>وسيلة الدفع</label>
         <div class="chips" id="oPay">
@@ -580,7 +581,8 @@ details.rep[open] summary{margin-bottom:12px}
   <p class="sub" id="eMeta"></p>
   <div class="grid">
     <div class="field"><label for="ePhone">جوال العميل</label><input id="ePhone" inputmode="tel"></div>
-    <div class="field"><label for="eAmount">المبلغ</label><input id="eAmount" inputmode="decimal"></div>
+    <div class="field"><label for="eAmount">المبلغ (الإجمالي)</label><input id="eAmount" inputmode="decimal"></div>
+    <div class="field hidden" id="eFeeWrap"><label for="eFee">منها التوصيل</label><input id="eFee" inputmode="decimal"></div>
     <div class="field wide"><label for="eDesc">وصف الطلب</label><input id="eDesc"></div>
     <div class="field"><label for="ePay">وسيلة الدفع</label><select id="ePay"><option>تحويل بنكي</option><option>تابي</option><option>تمارا</option></select></div>
     <div class="field"><label for="eTxn">رقم العملية</label><input id="eTxn"></div>
@@ -614,7 +616,11 @@ const SUPABASE_ANON_KEY = 'sb_publishable_1Lcx6NE0zKb-xrvH1K4cYA_DeJCaJd7';   //
 const PICKUP_REGION = 'أبها';   // منطقة المحل — طلبات الاستلام تنحفظ عليها
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth:{ storageKey:'dm-whatsapp-auth' } });  // جلسة مستقلة عن نظام المشتريات
 const $ = id => document.getElementById(id);
-let ME = { email:'', name:'', role:'' }, HAS_RECV = false;
+let ME = { email:'', name:'', role:'' }, HAS_RECV = false, HAS_FEE = false;
+// فصل مبلغ الطلب عن التوصيل: يبدأ من أول نوفمبر (بطلب رؤوف عشان ما يتلخبط الشهر)، وبعد إضافة عمود delivery_fee.
+// amount يبقى الإجمالي المدفوع (الطلب + التوصيل)، فالتقارير والتحقق ما تتغير
+const FEE_FROM = '2026-11-01';
+const feeOn = () => HAS_FEE && today() >= FEE_FROM;
 
 /* ================== أدوات ================== */
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -695,6 +701,8 @@ async function boot(){
   ME = data;
   // عمود وقت الاستقبال: نخفي الخانة لين ينضاف في القاعدة، عشان ما يتعطل الحفظ
   HAS_RECV = !(await sb.from('wa_orders').select('received_at').limit(1)).error;
+  HAS_FEE = !(await sb.from('wa_orders').select('delivery_fee').limit(1)).error;
+  $('eFeeWrap').classList.toggle('hidden', !HAS_FEE); feeSync();
   document.querySelectorAll('.rtime').forEach(el => el.classList.toggle('hidden', !HAS_RECV));
   $('whoName').textContent = `${data.name} · ${isAdmin() ? 'أدمن' : 'موظفة'}`;
   document.querySelectorAll('.adm').forEach(el => el.classList.toggle('hidden', !isAdmin()));
@@ -802,6 +810,15 @@ function recvTime(){
 }
 // بعد ما تكتب الساعة ينتقل للدقايق لحاله
 $('oRecvH').oninput = () => { const v = arDigits($('oRecvH').value); if (v.length===2 || (v.length===1 && +v>1)) $('oRecvM').focus(); };
+function feeSync(){
+  const on = feeOn(), pick = radioVal('ful')==='استلام';
+  $('oAmountLbl').textContent = on ? 'مبلغ الطلب (بدون التوصيل)' : 'المبلغ (شامل التوصيل)';
+  $('oFeeWrap').classList.toggle('hidden', !on || pick);
+  const a = num($('oAmount').value), f = pick ? 0 : num($('oFee').value);
+  $('oTotalHint').textContent = on && a ? `الإجمالي: ${money(a + (f||0))}` : '';
+}
+['oAmount','oFee'].forEach(id => $(id).addEventListener('input', feeSync));
+document.querySelectorAll('input[name="ful"]').forEach(r => r.addEventListener('change', feeSync));
 function deliveryDate(){ return $('oDate').value; }
 
 $('oSave').onclick = async () => {
@@ -811,6 +828,8 @@ $('oSave').onclick = async () => {
   if (!phoneCheck(phone, 'oMsg')) return;
   if (!desc) return msg('oMsg','اكتبي وصف الطلب');
   if (amount === null || amount <= 0) return msg('oMsg','اكتبي مبلغ الطلب');
+  const fee = feeOn() ? (pick ? 0 : num($('oFee').value)) : null;
+  if (feeOn() && !pick && (fee === null || fee < 0)) return msg('oMsg','اكتبي مبلغ التوصيل (ولو صفر)');
   if (!payment) return msg('oMsg','اختاري وسيلة الدفع');
   if (!region) return msg('oMsg','اختاري المنطقة');
   if (!pick && region==='أخرى' && !$('oRegionOther').value.trim()) return msg('oMsg','اكتبي اسم المنطقة');
@@ -824,17 +843,18 @@ $('oSave').onclick = async () => {
   $('oSave').disabled = true;
   try{
     const receipt_path = payment==='تحويل بنكي' ? await upload($('oReceipt').files[0], 'receipts') : null;
-    const row = { phone, amount, description:desc, payment, region, delivery_date, paid_date,
+    const row = { phone, amount: fee === null ? amount : amount + fee, description:desc, payment, region, delivery_date, paid_date,
       region_other: !pick && region==='أخرى' ? $('oRegionOther').value.trim() : null,
       fulfillment: ful, order_type:$('oType').value, source:$('oSource').value||null, status:$('oStatus').value,
       txn_ref: payment!=='تحويل بنكي' ? ($('oTxn').value.trim()||null) : null, receipt_path };
     if (recv) row.received_at = recv.toISOString();
+    if (fee !== null) row.delivery_fee = fee;
     const { data, error } = await sb.from('wa_orders').insert(row).select('code,approval').single();
     if (error) throw error;
     const when = dayLabel(delivery_date);
     const note = data.approval==='بانتظار الاعتماد' ? `تم حفظ ${data.code} — بانتظار اعتماد الأدمن لأن تاريخ التحويل سابق` : `تم حفظ الطلب ${data.code} — تسليم ${when}`;
     toast(note); msg('oMsg', note, true);
-    ['oPhone','oAmount','oDesc','oRegionOther','oTxn','oReceipt','oRecvH','oRecvM'].forEach(id => $(id).value=''); $('oRecvAP').value='م'; $('oPhoneHint').textContent='';
+    ['oPhone','oAmount','oFee','oDesc','oRegionOther','oTxn','oReceipt','oRecvH','oRecvM'].forEach(id => $(id).value=''); feeSync(); $('oRecvAP').value='م'; $('oPhoneHint').textContent='';
     document.querySelectorAll('input[name="pay"],input[name="reg"]').forEach(r => r.checked=false);
     $('oDate').value = today(); dateHint(); $('oPaid').value = today(); paidHint();
     ['oReceiptWrap','oTxnWrap','oRegionOtherWrap'].forEach(id => $(id).classList.add('hidden'));
@@ -966,7 +986,7 @@ function renderOrders(){
     <td><span class="tag ${o.delivery_date===t?'blue':o.delivery_date>t?'violet':''}">${dayLabel(o.delivery_date)}</span>${o.fulfillment==='استلام'?' <span class="tag pick">استلام</span>':''}</td>
     <td class="num"><a class="link" href="https://wa.me/966${esc(o.phone.replace(/^0/,''))}" target="_blank" rel="noopener">${esc(o.phone)}</a>${phoneTag(o.phone)}</td>
     <td class="desc">${esc(o.description)}${o.source?` <span class="tag rose">${esc(o.source)}</span>`:''}</td>
-    <td class="num"><b>${money(o.amount)}</b></td>
+    <td class="num"><b>${money(o.amount)}</b>${Number(o.delivery_fee) ? `<br><span class="muted" style="font-size:.78rem">منها توصيل ${money(o.delivery_fee)}</span>` : ''}</td>
     <td><span class="pay pay-${{'تمارا':'tm','تابي':'tb','تحويل بنكي':'bk'}[o.payment]}">${esc(o.payment)}</span></td>
     <td>${o.fulfillment==='استلام' ? '<span class="muted">من المحل</span>' : esc(o.region==='أخرى' ? (o.region_other||'أخرى') : o.region)}</td>
     <td><select class="stsel ${ST_CLASS[o.status]||''}" data-status="${o.id}">${Object.keys(ST_CLASS).filter(s=>s===o.status || s!==(o.fulfillment==='استلام'?'تم التوصيل':'تم الاستلام')).map(s=>`<option ${s===o.status?'selected':''}>${s}</option>`).join('')}</select></td>
@@ -1002,8 +1022,8 @@ $('oRows').addEventListener('click', async e => {
   if (d && confirm('حذف الطلب نهائياً؟')){ const { error } = await sb.from('wa_orders').delete().eq('id', d); toast(error?'ما انحذف':'تم الحذف'); loadOrders(); }
 });
 $('oCsv').onclick = () => {
-  const head = ['الرقم','تاريخ التحويل','تاريخ التسجيل','وقت التسجيل','وقت الاستقبال','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق','الاعتماد'];
-  const rows = ORDERS.map(o => [o.code, o.paid_date, fmtDate(o.created_at), fmtTime(o.created_at), o.received_at ? fmtTime(o.received_at) : '', o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا', o.approval]);
+  const head = ['الرقم','تاريخ التحويل','تاريخ التسجيل','وقت التسجيل','وقت الاستقبال','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','منها التوصيل','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق','الاعتماد'];
+  const rows = ORDERS.map(o => [o.code, o.paid_date, fmtDate(o.created_at), fmtTime(o.created_at), o.received_at ? fmtTime(o.received_at) : '', o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.delivery_fee ?? '', o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا', o.approval]);
   const csv = '\ufeff' + [head, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
   a.download = `طلبات-الواتس-${today()}.csv`; a.click();
@@ -1024,7 +1044,7 @@ function openEdit(id){
   $('eCode').textContent = o.code;
   $('eMeta').textContent = `سُجّل ${fmtDT(o.created_at)} بواسطة ${o.created_by||'—'} · ${o.approval}`;
   $('ePaid').value = o.paid_date; $('ePaid').max = today();
-  $('ePhone').value = o.phone; $('eAmount').value = o.amount; $('eDesc').value = o.description;
+  $('ePhone').value = o.phone; $('eAmount').value = o.amount; $('eFee').value = o.delivery_fee ?? ''; $('eDesc').value = o.description;
   $('ePay').value = o.payment; $('eTxn').value = o.txn_ref||'';
   $('eFul').value = o.fulfillment||'توصيل'; $('eReg').value = o.region; $('eRegOther').value = o.region_other||'';
   $('eDate').value = o.delivery_date; $('eRecv').value = o.received_at ? `${fmtDate(o.received_at)}T${fmtTime(o.received_at)}` : ''; $('eType').value = o.order_type; $('eSource').value = o.source||''; $('eStatus').value = o.status;
@@ -1038,6 +1058,8 @@ $('eSave').onclick = async () => {
   if (!phoneCheck(phone, 'eMsg')) return;
   if (!desc) return msg('eMsg','وصف الطلب فاضي');
   if (amount === null || amount <= 0) return msg('eMsg','المبلغ غير صحيح');
+  const eFee = $('eFee').value.trim() === '' ? null : num($('eFee').value);
+  if (HAS_FEE && eFee !== null && (eFee < 0 || eFee > amount)) return msg('eMsg','مبلغ التوصيل لازم يكون أقل من الإجمالي');
   if (!pick && $('eReg').value==='أخرى' && !$('eRegOther').value.trim()) return msg('eMsg','اكتب اسم المنطقة');
   if (!$('eDate').value) return msg('eMsg','اختر تاريخ التسليم');
   let st = $('eStatus').value;
@@ -1049,6 +1071,7 @@ $('eSave').onclick = async () => {
       fulfillment:$('eFul').value, region: pick ? PICKUP_REGION : $('eReg').value,
       region_other: !pick && $('eReg').value==='أخرى' ? $('eRegOther').value.trim() : null,
       delivery_date:$('eDate').value, paid_date:$('ePaid').value, order_type:$('eType').value, source:$('eSource').value||null, status:st };
+    if (HAS_FEE) upd.delivery_fee = eFee;
     if (HAS_RECV) upd.received_at = $('eRecv').value ? new Date($('eRecv').value).toISOString() : null;
     const f = $('eReceipt').files[0];
     if (f) upd.receipt_path = await upload(f, 'receipts');
@@ -1364,6 +1387,7 @@ async function loadReports(){
   const prevLive = prev.filter(o=>o.status!=='ملغي');
   const cancelled = paid.filter(o=>o.status==='ملغي');
   const sales = sum(live), prevSales = sum(prevLive);
+  const fees = live.reduce((s,o) => s + Number(o.delivery_fee||0), 0);
   const aov = live.length ? sales/live.length : 0, prevAov = prevLive.length ? sum(prevLive)/prevLive.length : 0;
   const unver = live.filter(o=>!o.verified);
   const scheduled = live.filter(o => o.delivery_date > o.paid_date);
@@ -1416,6 +1440,7 @@ async function loadReports(){
       <div class="stat c-slate"><b>${scheduled.length}</b><span>طلبات مجدولة لتاريخ لاحق (${money(sum(scheduled))})</span></div>
       <div class="stat ${unver.length?'c-alert':'c-sage'}"><b>${money(sum(unver))}</b><span>بانتظار التحقق (${unver.length} طلب)</span></div>
       <div class="stat c-stone"><b>${cancelled.length}</b><span>ملغي (${money(sum(cancelled))})</span></div>
+      ${fees ? `<div class="stat c-slate"><b>${money(fees)}</b><span>منها رسوم التوصيل (بدونها ${money(sales - fees)})</span></div>` : ''}
     </div>
     ${colChart('المبيعات اليومية', dk.map(k=>+k.slice(8)), dk.map(k=>days[k].amt), i=>`${dk[i]}: ${money(days[dk[i]].amt)} · ${days[dk[i]].n} طلب`, i=>dk.length>12 && (+dk[i].slice(8))%5 && i && i<dk.length-1)}
     <div class="two">
@@ -1473,8 +1498,8 @@ async function loadReports(){
   $('rCsv').onclick = () => exportCSV(REP_ORDERS, `تقرير-الواتس-${from}-${to}.csv`);
 }
 function exportCSV(list, name){
-  const head = ['الرقم','تاريخ التحويل','تاريخ التسجيل','وقت التسجيل','وقت الاستقبال','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق','الاعتماد'];
-  const rows = list.map(o => [o.code, o.paid_date, fmtDate(o.created_at), fmtTime(o.created_at), o.received_at ? fmtTime(o.received_at) : '', o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا', o.approval]);
+  const head = ['الرقم','تاريخ التحويل','تاريخ التسجيل','وقت التسجيل','وقت الاستقبال','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','منها التوصيل','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق','الاعتماد'];
+  const rows = list.map(o => [o.code, o.paid_date, fmtDate(o.created_at), fmtTime(o.created_at), o.received_at ? fmtTime(o.received_at) : '', o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.delivery_fee ?? '', o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا', o.approval]);
   const csv = '\ufeff' + [head, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download = name; a.click();
 }
@@ -1552,7 +1577,7 @@ $('rDayCsv').onclick = () => exportCSV(RDATA, `تقرير-يومي-${$('rDay').v
 $('rMonthCsv').onclick = () => exportCSV(RDATA, `تقرير-شهري-${$('rMonth').value}.csv`);
 
 /* ================== الاعتماد وسجل التدقيق (الأدمن) ================== */
-const FIELD_AR = { phone:'الجوال', amount:'المبلغ', description:'الوصف', payment:'الدفع', region:'المنطقة', region_other:'اسم المنطقة', delivery_date:'تاريخ التسليم', paid_date:'تاريخ التحويل', order_type:'النوع', source:'المصدر', status:'الحالة', txn_ref:'رقم العملية', receipt_path:'الإيصال', verified:'التحقق', fulfillment:'طريقة التسليم', approval:'الاعتماد', reject_reason:'سبب الرفض', responsible:'المتسبب', action:'الإجراء', notes:'ملاحظات', ctype:'نوع الشكوى', details:'التفاصيل', order_code:'رقم الطلب' };
+const FIELD_AR = { phone:'الجوال', amount:'المبلغ', delivery_fee:'مبلغ التوصيل', description:'الوصف', payment:'الدفع', region:'المنطقة', region_other:'اسم المنطقة', delivery_date:'تاريخ التسليم', paid_date:'تاريخ التحويل', order_type:'النوع', source:'المصدر', status:'الحالة', txn_ref:'رقم العملية', receipt_path:'الإيصال', verified:'التحقق', fulfillment:'طريقة التسليم', approval:'الاعتماد', reject_reason:'سبب الرفض', responsible:'المتسبب', action:'الإجراء', notes:'ملاحظات', ctype:'نوع الشكوى', details:'التفاصيل', order_code:'رقم الطلب' };
 const SKIP_F = ['verified_by','verified_at','approved_by','approved_at','delivered_at','closed_at','updated_at','code'];
 let PROFILES = [];
 const nameOfEmail = e => ((PROFILES.find(p => p.email.toLowerCase()===(e||'').toLowerCase())||{}).name) || e || '—';
