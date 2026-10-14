@@ -3,6 +3,8 @@
 // SUPABASE_URL و SUPABASE_SERVICE_ROLE_KEY تجي جاهزة من Supabase
 // لازم "Verify JWT" يكون مقفل للدالة. الحماية بسر تولّده القاعدة في wa_push_config (ما يقراه إلا مفتاح الخدمة)
 // والجدولة ترسله في x-cron-secret
+// شكوى جديدة: trigger على wa_complaints يستدعي ?job=complaint، وتوصل للإدارة (إشعار جوال، وتيليجرام إذا
+// انضاف TELEGRAM_BOT_TOKEN و TELEGRAM_CHAT_ID في Secrets)
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import webpush from 'npm:web-push@3.6.7';
 
@@ -28,10 +30,41 @@ Deno.serve(async (req) => {
     sb.from('wa_push_subs').select('*'),
   ]);
   const sent: string[] = [], gone: string[] = [];
+  type Msg = { title: string; body: string; tab?: string };
+  const pushTo = async (email: string, msg: Msg) => {
+    for (const s of (subs || []).filter((x) => x.email.toLowerCase() === email.toLowerCase())) {
+      try {
+        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(msg), { TTL: 3 * 3600 });
+        sent.push(email);
+      } catch (e: any) {
+        // الجهاز ألغى الاشتراك أو انحذف التطبيق: نشيله
+        if (e.statusCode === 404 || e.statusCode === 410) { gone.push(s.endpoint); await sb.from('wa_push_subs').delete().eq('endpoint', s.endpoint); }
+        else console.error('push failed', email, e.statusCode, e.body);
+      }
+    }
+  };
+
+  if (job === 'complaint') {   // شكوى جديدة: للإدارة
+    const { id } = await req.json().catch(() => ({ id: null }));
+    const { data: c } = await sb.from('wa_complaints').select('*').eq('id', id).maybeSingle();
+    if (!c) return Response.json({ job, sent });
+    const who = (staff || []).find((s) => s.email.toLowerCase() === String(c.created_by || '').toLowerCase())?.name;
+    const details = String(c.details || '').slice(0, 160);
+    const msg: Msg = { title: 'شكوى جديدة 🔴', tab: 'complaints',
+      body: `طلب ${c.order_code} · ${c.ctype}${c.responsible ? ` · المتسبب: ${c.responsible}` : ''}\n${details}${who ? `\nسجّلتها: ${who}` : ''}` };
+    for (const p of (staff || []).filter((s) => s.role === 'admin')) await pushTo(p.email, msg);
+    const tg = Deno.env.get('TELEGRAM_BOT_TOKEN'), chat = Deno.env.get('TELEGRAM_CHAT_ID');
+    if (tg && chat) {
+      const r = await fetch(`https://api.telegram.org/bot${tg}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chat, text: `🔴 شكوى جديدة — مبيعات الواتس\n${msg.body}` }) });
+      if (r.ok) sent.push('telegram'); else console.error('telegram failed', r.status, await r.text());
+    }
+    return Response.json({ job, sent, removed: gone.length });
+  }
 
   for (const p of (staff || []).filter((s) => s.role !== 'admin')) {
     const name = p.name || '';
-    let msg: { title: string; body: string; tab?: string } | null = null;
+    let msg: Msg | null = null;
 
     if (job === 'test') msg = { title: 'مبيعات الواتس', body: `${name}، الإشعارات شغالة ✅` };
 
@@ -52,17 +85,7 @@ Deno.serve(async (req) => {
       if (!data) msg = { title: 'النشاط اليومي', body: `${name}، لا تنسي تسجلي نشاط اليوم (الستوري والمشاهدات والاستفسارات)، وإذا ما فيه نشاط اكتبي السبب`, tab: 'daily' };
     }
 
-    if (!msg) continue;
-    for (const s of (subs || []).filter((x) => x.email.toLowerCase() === p.email.toLowerCase())) {
-      try {
-        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(msg), { TTL: 3 * 3600 });
-        sent.push(p.email);
-      } catch (e) {
-        // الجهاز ألغى الاشتراك أو انحذف التطبيق: نشيله
-        if (e.statusCode === 404 || e.statusCode === 410) { gone.push(s.endpoint); await sb.from('wa_push_subs').delete().eq('endpoint', s.endpoint); }
-        else console.error('push failed', p.email, e.statusCode, e.body);
-      }
-    }
+    if (msg) await pushTo(p.email, msg);
   }
   return Response.json({ job, today, sent, removed: gone.length });
 });

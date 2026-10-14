@@ -487,7 +487,7 @@ details.rep[open] summary{margin-bottom:12px}
       <div class="field"><label for="cType">نوع الشكوى</label><select id="cType"><option>تأخير</option><option>جودة الورد</option><option>اختلاف عن الصورة</option><option>تلف أثناء التوصيل</option><option>خطأ في العنوان</option><option>تعامل المندوب</option><option>أخرى</option></select></div>
       <div class="field wide"><label for="cDetails">تفاصيل الشكوى</label><textarea id="cDetails"></textarea></div>
       <div class="field wide"><label for="cAction">الإجراء المتخذ</label><input id="cAction" placeholder="مثال: استبدال الباقة / تعويض / اعتذار"></div>
-      <div class="field"><label for="cResp">المتسبب</label><input id="cResp" placeholder="اتركيه فاضي وحدديه بعدين"></div>
+      <div class="field"><label for="cResp">المتسبب</label><input id="cResp" list="respList" placeholder="مثال: المندوب، المنسق، المورد"><datalist id="respList"></datalist></div>
       <div class="field"><label for="cStatus">حالة الشكوى</label><select id="cStatus"><option>قيد المتابعة</option><option>تم الحل</option></select></div>
       <div class="field"><label for="cImage">صورة <span class="opt">(اختياري)</span></label><input id="cImage" type="file" accept="image/*"></div>
       <div class="field wide"><label for="cNotes">ملاحظات <span class="opt">(اختياري)</span></label><input id="cNotes"></div>
@@ -1189,6 +1189,7 @@ $('cSave').onclick = async () => {
   const details = $('cDetails').value.trim();
   if (!$('cOrder').value.trim()) return msg('cMsg','اكتبي رقم الطلب');
   if (!details) return msg('cMsg','اكتبي تفاصيل الشكوى');
+  if (!$('cResp').value.trim()) return msg('cMsg','حددي المتسبب في الشكوى');
   if ($('cPhone').value.trim() && !phoneCheck(normPhone($('cPhone').value), 'cMsg')) return;
   $('cSave').disabled = true;
   try{
@@ -1196,11 +1197,11 @@ $('cSave').onclick = async () => {
     const status = $('cStatus').value;
     const row = { order_code: arDigits($('cOrder').value.trim()).toUpperCase(), phone: normPhone($('cPhone').value)||null,
       received_at: new Date($('cReceived').value).toISOString(), ctype:$('cType').value, details,
-      action:$('cAction').value.trim()||null, responsible:$('cResp').value.trim()||null, status, notes:$('cNotes').value.trim()||null,
+      action:$('cAction').value.trim()||null, responsible:$('cResp').value.trim(), status, notes:$('cNotes').value.trim()||null,
       image_path, closed_at: status==='تم الحل' ? new Date().toISOString() : null };
     const { error } = await sb.from('wa_complaints').insert(row);
     if (error) throw error;
-    toast('تم حفظ الشكوى');
+    toast('تم حفظ الشكوى'); msg('cMsg','تم حفظ الشكوى', true);
     ['cOrder','cPhone','cDetails','cAction','cNotes','cImage'].forEach(id => $(id).value='');
     $('cStatus').value='قيد المتابعة'; $('cResp').value='';
     loadComplaints();
@@ -1214,6 +1215,9 @@ async function fetchComplaints(from, to){
 async function loadComplaints(){
   const [list, { data:codes }] = await Promise.all([ fetchComplaints($('cFrom').value, $('cTo').value), sb.from('wa_orders').select('code,phone').order('id',{ascending:false}).limit(200) ]);
   $('orderCodes').innerHTML = (codes||[]).map(c => `<option value="${c.code}">${esc(c.phone)}</option>`).join('');
+  // اقتراحات المتسبب: الأساسية + اللي انكتبت قبل، عشان تقرير "حسب المتسبب" ما يتشتت
+  const resp = [...new Set(['المندوب','المنسق','خدمة العملاء','المورد','العميل', ...list.map(c => (c.responsible||'').trim()).filter(Boolean)])];
+  $('respList').innerHTML = resp.map(r => `<option value="${esc(r)}">`).join('');
   const solved = list.filter(c=>c.status==='تم الحل').length;
   stats('cStats', [[list.length,'إجمالي الشكاوى'],[solved,'تم حلها'],[list.length-solved,'قيد المتابعة', list.length-solved>0],[topKey(countBy(list,'ctype')),'الأكثر تكراراً']]);
   $('cRows').innerHTML = list.length ? list.map((c,i) => `<tr>
@@ -1228,7 +1232,8 @@ async function loadComplaints(){
 ['cFrom','cTo'].forEach(id => $(id).onchange = loadComplaints);
 $('cRows').addEventListener('change', async e => {
   const rid = e.target.dataset.cresp;
-  if (rid){ const { error } = await sb.from('wa_complaints').update({ responsible:e.target.value.trim()||null }).eq('id', rid); toast(error?'ما انحفظ':'تم تحديد المتسبب'); return loadComplaints(); }
+  if (rid && !e.target.value.trim()){ toast('المتسبب إجباري'); return loadComplaints(); }
+  if (rid){ const { error } = await sb.from('wa_complaints').update({ responsible:e.target.value.trim() }).eq('id', rid); toast(error?'ما انحفظ':'تم تحديد المتسبب'); return loadComplaints(); }
   const id = e.target.dataset.cstatus; if (!id) return;
   const st = e.target.value;
   const { error } = await sb.from('wa_complaints').update({ status:st, closed_at: st==='تم الحل'?new Date().toISOString():null }).eq('id', id);
@@ -1616,7 +1621,6 @@ async function pushSave(sub){
   if (error) throw error;
 }
 async function pushInit(){
-  if (isAdmin()) return;
   // يظهر الزر بس بعد ما ينضاف الجدول وتنرفع الدالة
   if ((await sb.from('wa_push_subs').select('endpoint').limit(1)).error) return;
   try{ PUSH_KEY = (await (await fetch(`${SUPABASE_URL}/functions/v1/wa-push?job=key`)).text()).trim(); }catch(e){}
@@ -1638,7 +1642,7 @@ $('pushBtn').onclick = async () => {
     const sub = await reg.pushManager.getSubscription() || await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:b64uBytes(PUSH_KEY) });
     await pushSave(sub);
     pushLabel(true);
-    reg.showNotification('مبيعات الواتس', { body:'تم تفعيل الإشعارات ✅ بيوصلك التذكير حتى لو التطبيق مقفل', icon:'icon-192.png', lang:'ar', dir:'rtl' });
+    reg.showNotification('مبيعات الواتس', { body: isAdmin() ? 'تم تفعيل الإشعارات ✅ بيوصلك تنبيه كل شكوى جديدة' : 'تم تفعيل الإشعارات ✅ بيوصلك التذكير حتى لو التطبيق مقفل', icon:'icon-192.png', lang:'ar', dir:'rtl' });
   }catch(e){ toast('ما تفعّلت الإشعارات: ' + (e.message||e)); }
 };
 </script>
