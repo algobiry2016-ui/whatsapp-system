@@ -106,7 +106,7 @@ td.desc{white-space:normal;min-width:180px}
 tr:last-child td{border-bottom:0}
 td select{border:1px solid var(--line);border-radius:6px;padding:3px 6px;background:#fff}
 .num{font-variant-numeric:tabular-nums}
-.nPhotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px}
+.nPhotos{display:grid;grid-template-columns:repeat(auto-fill,88px);gap:8px}
 .nPhotos .ph{position:relative;aspect-ratio:1;border-radius:var(--r-sm);overflow:hidden;background:#eee}
 .nPhotos .ph img{width:100%;height:100%;object-fit:cover}
 .nPhotos .ph button{position:absolute;top:4px;inset-inline-end:4px;border:0;border-radius:50%;width:26px;height:26px;background:#fff;color:#c00;cursor:pointer}
@@ -429,59 +429,54 @@ details.rep[open] summary{margin-bottom:12px}
 
 
 <!-- ============ طلبات الواتس (مربوطة ببرنامج طلبات الموقع) ============ -->
-<!-- نفس الطلب، وزيادة: العبارة والفترة والصور والتسجيلات والمنسق. ينحفظ هنا ويوصل للمنسقين على طول. -->
+<!-- ينحفظ هنا مثل العادة، ويوصل للمنسق على طول بالصور والتسجيلات. -->
 <div data-view="link" class="hidden">
   <section class="panel">
     <h2>طلب واتس جديد</h2>
-    <p class="sub">ينحفظ هنا مثل العادة، ويوصل للمنسق على طول بالصور والتسجيلات. والحالة تتحدث هنا لحالها لين يتسلّم.</p>
     <div class="grid">
-      <div class="field"><label for="nPhone">جوال العميل (المرسل)</label><input id="nPhone" inputmode="tel" placeholder="05xxxxxxxx"></div>
-      <div class="field"><label for="nRecipient">جوال المستلم <span class="opt">(لو غير المرسل)</span></label><input id="nRecipient" inputmode="tel" placeholder="05xxxxxxxx"></div>
-      <div class="field amount"><label for="nAmount" id="nAmountLbl">المبلغ (شامل التوصيل)</label><input id="nAmount" inputmode="decimal" placeholder="0"><small class="hint" id="nTotalHint"></small></div>
-      <div class="field amount hidden" id="nFeeWrap"><label for="nFee">مبلغ التوصيل</label><input id="nFee" inputmode="decimal" placeholder="0"></div>
-      <div class="field wide"><label for="nDesc">وصف الطلب</label><input id="nDesc" placeholder="مثال: باقة ورد جوري مع شوكولاتة"></div>
-      <div class="field wide"><label for="nCard">العبارة <span class="opt">(اختياري — الصقيها من الواتس)</span></label><textarea id="nCard" rows="3"></textarea></div>
-      <div class="field wide"><label>وسيلة الدفع</label>
+      <div class="field"><label for="nPhone">جوال العميل</label><input id="nPhone" inputmode="tel" placeholder="05xxxxxxxx"><small class="hint" id="nPhoneHint"></small></div>
+      <div class="field"><label for="nRecipient">جوال المستلم <span class="opt">(لو غيره)</span></label><input id="nRecipient" inputmode="tel" placeholder="05xxxxxxxx"></div>
+      <div class="field wide"><label for="nDesc">وصف الطلب</label><input id="nDesc" placeholder="مثال: باقة ورد جوري"></div>
+      <div class="field wide"><label for="nAddons">الإضافات <span class="opt">(اختياري)</span></label><input id="nAddons" placeholder="مثال: بالونات، شوكولاتة"></div>
+      <div class="field wide"><label for="nCard">العبارة <span class="opt">(اختياري — الصقيها من الواتس)</span></label><textarea id="nCard" rows="2"></textarea></div>
+      <div class="field wide"><label>التسليم</label>
+        <div class="chips">
+          <input type="radio" name="nful" id="nf1" value="توصيل" checked><label for="nf1">توصيل</label>
+          <input type="radio" name="nful" id="nf2" value="استلام"><label for="nf2">استلام من المحل</label>
+        </div>
+      </div>
+      <div class="field wide" id="nRegionWrap">
+        <div class="chips">
+          <input type="radio" name="nreg" id="nr1" value="أبها"><label for="nr1">أبها</label>
+          <input type="radio" name="nreg" id="nr2" value="خميس مشيط"><label for="nr2">خميس مشيط</label>
+          <input type="radio" name="nreg" id="nr3" value="أخرى"><label for="nr3">منطقة ثانية</label>
+        </div>
+      </div>
+      <div class="field hidden" id="nRegionOtherWrap"><label for="nRegionOther">اسم المنطقة</label><input id="nRegionOther" placeholder="مثال: الطريب"></div>
+      <div class="field" id="nAddressWrap"><label for="nAddress">العنوان أو الموقع <span class="opt">(اختياري)</span></label><input id="nAddress"></div>
+      <div class="field"><label for="nDate">يوم التسليم</label><input id="nDate" type="date"></div>
+      <div class="field"><label for="nSlot">الفترة</label><select id="nSlot"><option value="">اختاري</option><option value="morning">9 – 12 الصبح</option><option value="afternoon">2 – 7 مساءً</option><option value="evening">7 – 11 مساءً</option></select></div>
+      <div class="field amount"><label for="nAmount">مبلغ الطلب</label><input id="nAmount" inputmode="decimal" placeholder="0"><small class="hint" id="nTotalHint"></small></div>
+      <div class="field amount" id="nFeeWrap"><label for="nFee">مبلغ التوصيل</label><input id="nFee" inputmode="decimal" placeholder="0"></div>
+      <div class="field wide"><label>الدفع</label>
         <div class="chips">
           <input type="radio" name="npay" id="np1" value="تحويل بنكي"><label for="np1">تحويل بنكي</label>
           <input type="radio" name="npay" id="np2" value="تابي"><label for="np2">تابي</label>
           <input type="radio" name="npay" id="np3" value="تمارا"><label for="np3">تمارا</label>
         </div>
       </div>
-      <div class="field wide"><label>طريقة التسليم</label>
-        <div class="chips">
-          <input type="radio" name="nful" id="nf1" value="توصيل" checked><label for="nf1">توصيل</label>
-          <input type="radio" name="nful" id="nf2" value="استلام"><label for="nf2">استلام من المحل</label>
-        </div>
-      </div>
-      <div class="field wide" id="nRegionWrap"><label>منطقة التوصيل</label>
-        <div class="chips">
-          <input type="radio" name="nreg" id="nr1" value="أبها"><label for="nr1">أبها</label>
-          <input type="radio" name="nreg" id="nr2" value="خميس مشيط"><label for="nr2">خميس مشيط</label>
-          <input type="radio" name="nreg" id="nr3" value="أخرى"><label for="nr3">أخرى</label>
-        </div>
-      </div>
-      <div class="field hidden" id="nRegionOtherWrap"><label for="nRegionOther">اسم المنطقة</label><input id="nRegionOther"></div>
-      <div class="field wide" id="nAddressWrap"><label for="nAddress">العنوان أو رابط الموقع <span class="opt">(اختياري)</span></label><input id="nAddress"></div>
-      <div class="field"><label for="nDate">تاريخ التسليم</label><input id="nDate" type="date"></div>
-      <div class="field"><label for="nSlot">الفترة</label><select id="nSlot"><option value="">اختاري</option><option value="morning">من 9 إلى 12 الصبح</option><option value="afternoon">من 2 إلى 7 مساءً</option><option value="evening">من 7 إلى 11 مساءً</option></select></div>
-      <div class="field"><label for="nPaid">تاريخ التحويل</label><input id="nPaid" type="date"><small class="hint" id="nPaidHint"></small></div>
-      <div class="field"><label for="nRecv">وقت استقبال الطلب</label><input id="nRecv" type="time"></div>
-      <div class="field hidden" id="nReceiptWrap"><label for="nReceipt">صورة التحويل <span class="opt">(للإدارة)</span></label><input id="nReceipt" type="file" accept="image/*,application/pdf"></div>
+      <div class="field hidden" id="nReceiptWrap"><label for="nReceipt">صورة التحويل</label><input id="nReceipt" type="file" accept="image/*,application/pdf"></div>
       <div class="field hidden" id="nTxnWrap"><label for="nTxn">رقم العملية <span class="opt">(اختياري)</span></label><input id="nTxn"></div>
-      <div class="field"><label for="nSource">العميل</label><select id="nSource"><option value="">—</option><option>عميل جديد</option><option>عميل سابق</option><option>توصية</option><option>ستوري</option><option>إعلان</option></select></div>
+      <div class="field"><label for="nPaid">تاريخ التحويل</label><input id="nPaid" type="date"><small class="hint" id="nPaidHint"></small></div>
     </div>
 
-    <h3 style="margin-top:18px">📷 صور الطلب للمنسق <span class="opt">(لين 6)</span></h3>
+    <h3 style="margin:16px 0 8px">للمنسق</h3>
     <div class="nPhotos" id="nPhotos"></div>
-    <h3 style="margin-top:18px">🎙️ تسجيل صوتي للمنسق <span class="opt">(لين 3)</span></h3>
     <div id="nVoices"></div>
-    <button class="btn ghost" id="nRec" type="button" style="width:100%;margin-top:6px">🎙️ سجّلي</button>
+    <button class="btn ghost" id="nRec" type="button" style="width:100%;margin-top:8px">🎙️ سجّلي صوت للمنسق</button>
     <small class="hint" id="nRecMsg"></small>
+    <div class="field" style="margin-top:10px"><label for="nFlorist">🌸 المنسق</label><select id="nFlorist"><option value="">بعدين</option></select></div>
 
-    <div class="grid" style="margin-top:18px">
-      <div class="field"><label for="nFlorist">🌸 المنسق</label><select id="nFlorist"><option value="">بعدين</option></select></div>
-    </div>
     <div class="actions"><button class="btn" id="nSave">حفظ وإرسال للمنسق</button><span class="msg" id="nMsg"></span></div>
     <div class="nRetry hidden" id="nRetry"><span id="nRetryText"></span> <button class="btn small" id="nRetryBtn">إعادة الإرسال</button></div>
   </section>
@@ -794,7 +789,7 @@ async function nShrink(file){
 
 function nRenderPhotos(){
   $('nPhotos').innerHTML = N_PHOTOS.map((f,i) => `<div class="ph"><img src="${URL.createObjectURL(f)}" alt=""><button type="button" data-delph="${i}">✕</button></div>`).join('')
-    + (N_PHOTOS.length < N_MAX_PHOTOS ? `<label class="add">＋<input type="file" accept="image/*" multiple hidden id="nPhotoIn"></label>` : '');
+    + (N_PHOTOS.length < N_MAX_PHOTOS ? `<label class="add" title="صور الطلب للمنسق">📷<input type="file" accept="image/*" multiple hidden id="nPhotoIn"></label>` : '');
   const inp = $('nPhotoIn');
   if (inp) inp.onchange = () => { N_PHOTOS = [...N_PHOTOS, ...inp.files].slice(0, N_MAX_PHOTOS); nRenderPhotos(); };
 }
@@ -823,7 +818,7 @@ $('nRec').onclick = async () => {
     }, 500);
     r.onstop = () => {
       clearInterval(tick); stream.getTracks().forEach(t => t.stop()); N_REC = null;
-      $('nRec').classList.remove('rec'); $('nRec').textContent = '🎙️ سجّلي';
+      $('nRec').classList.remove('rec'); $('nRec').textContent = '🎙️ سجّلي صوت للمنسق';
       const blob = new Blob(chunks, { type: r.mimeType || type || 'audio/webm' });
       if (blob.size){ N_VOICES.push({ blob, url: URL.createObjectURL(blob) }); nRenderVoices(); }
     };
@@ -844,13 +839,25 @@ function nFulSync(){
 }
 document.querySelectorAll('input[name="nful"]').forEach(r => r.onchange = nFulSync);
 document.querySelectorAll('input[name="nreg"]').forEach(r => r.onchange = nFulSync);
+// هنا مبلغ الطلب ومبلغ التوصيل في خانتين من الحين (amount يبقى الإجمالي المدفوع)
 function nFeeSync(){
-  const on = feeOn(), pick = radioVal('nful')==='استلام';
-  $('nAmountLbl').textContent = on ? 'مبلغ الطلب (بدون التوصيل)' : 'المبلغ (شامل التوصيل)';
-  $('nFeeWrap').classList.toggle('hidden', !on || pick);
+  const pick = radioVal('nful')==='استلام';
+  $('nFeeWrap').classList.toggle('hidden', pick);
   const a = num($('nAmount').value), f = pick ? 0 : num($('nFee').value);
-  $('nTotalHint').textContent = on && a ? `الإجمالي: ${money(a + (f||0))}` : '';
+  $('nTotalHint').textContent = a ? `الإجمالي: ${money(a + (f||0))}` : '';
 }
+// عميل جديد أو سابق: من طلباته المسجلة هنا برقمه
+let N_KNOWN = null;
+async function nCustomer(){
+  const p = normPhone($('nPhone').value);
+  N_KNOWN = null; $('nPhoneHint').textContent = '';
+  if (!PHONE_OK.test(p)) return;
+  const { count } = await sb.from('wa_orders').select('id', { count:'exact', head:true }).eq('phone', p);
+  if (normPhone($('nPhone').value) !== p) return;
+  N_KNOWN = count || 0;
+  $('nPhoneHint').textContent = N_KNOWN ? `عميل سابق · ${N_KNOWN} طلب` : 'عميل جديد';
+}
+$('nPhone').onblur = nCustomer;
 ['nAmount','nFee'].forEach(id => $(id).addEventListener('input', nFeeSync));
 $('nPaid').oninput = () => { const d = $('nPaid').value, t = today(); $('nPaidHint').textContent = !d || d===t ? '' : d > t ? 'ما يصير تاريخ تحويل في المستقبل' : (isAdmin() ? 'تاريخ سابق' : 'تاريخ سابق، بينتظر اعتماد الأدمن'); };
 
@@ -859,7 +866,6 @@ async function loadLink(){
   if (!N_READY){
     N_READY = true;
     $('nDate').value = today(); $('nPaid').value = today(); $('nPaid').max = today(); $('nDate').min = today();
-    $('nRecv').value = `${pad(new Date().getHours())}:${pad(new Date().getMinutes())}`;
     nRenderPhotos(); nRenderVoices(); nFulSync();
   }
   try{
@@ -927,8 +933,8 @@ $('nSave').onclick = async () => {
   if (recipient && phoneBad(recipient)) return msg('nMsg', 'جوال المستلم: ' + phoneIssue(recipient));
   if (!desc) return msg('nMsg','اكتبي وصف الطلب');
   if (amount === null || amount <= 0) return msg('nMsg','اكتبي مبلغ الطلب');
-  const fee = feeOn() ? (pick ? 0 : num($('nFee').value)) : null;
-  if (feeOn() && !pick && (fee === null || fee < 0)) return msg('nMsg','اكتبي مبلغ التوصيل (ولو صفر)');
+  const fee = pick ? 0 : num($('nFee').value);
+  if (!pick && (fee === null || fee < 0)) return msg('nMsg','اكتبي مبلغ التوصيل (ولو صفر)');
   if (!payment) return msg('nMsg','اختاري وسيلة الدفع');
   if (!region) return msg('nMsg','اختاري المنطقة');
   if (!pick && region==='أخرى' && !$('nRegionOther').value.trim()) return msg('nMsg','اكتبي اسم المنطقة');
@@ -936,36 +942,35 @@ $('nSave').onclick = async () => {
   if (!slot) return msg('nMsg','اختاري الفترة');
   const paid_date = $('nPaid').value;
   if (!paid_date || paid_date > today()) return msg('nMsg','تاريخ التحويل غير صحيح');
-  const rt = $('nRecv').value;
-  const recv = rt ? new Date(`${paid_date}T${rt}`) : null;
-  if (HAS_RECV && !recv) return msg('nMsg','اكتبي وقت استقبال الطلب');
-  if (recv && recv > new Date()) return msg('nMsg','وقت الاستقبال لسّا ما جا — تأكدي من الوقت');
   $('nSave').disabled = true;
   try{
     // 1) هنا مثل العادة
     const receipt_path = payment==='تحويل بنكي' ? await upload($('nReceipt').files[0], 'receipts') : null;
-    const row = { phone, amount: fee === null ? amount : amount + fee, description:desc, payment, region, delivery_date, paid_date,
+    if (N_KNOWN === null) await nCustomer();
+    const addons = $('nAddons').value.trim();
+    const row = { phone, amount: amount + (fee || 0), description: addons ? `${desc} + ${addons}` : desc, payment, region, delivery_date, paid_date,
       region_other: !pick && region==='أخرى' ? $('nRegionOther').value.trim() : null,
-      fulfillment: ful, order_type:'عادي', source:$('nSource').value||null, status:'قيد التجهيز',
+      fulfillment: ful, order_type:'عادي', source: N_KNOWN === null ? null : (N_KNOWN ? 'عميل سابق' : 'عميل جديد'), status:'قيد التجهيز',
       txn_ref: payment!=='تحويل بنكي' ? ($('nTxn').value.trim()||null) : null, receipt_path };
-    if (recv && HAS_RECV) row.received_at = recv.toISOString();
-    if (fee !== null) row.delivery_fee = fee;
+    // وقت الاستقبال: وقت التسجيل نفسه
+    if (HAS_RECV) row.received_at = new Date().toISOString();
+    if (HAS_FEE) row.delivery_fee = fee || 0;
     const { data, error } = await sb.from('wa_orders').insert(row).select('id,code,approval').single();
     if (error) throw error;
     // 2) للمنسقين
     const p = { waId:data.id, code:data.code, photos: await Promise.all(N_PHOTOS.map(nShrink)), voices:[...N_VOICES],
       body:{ delivery_slot:slot, recipient_phone: recipient || null, card_message: $('nCard').value.trim() || null,
-        address: pick ? null : ($('nAddress').value.trim() || null), florist_id: $('nFlorist').value || null } };
+        address: pick ? null : ($('nAddress').value.trim() || null), florist_id: $('nFlorist').value || null,
+        description: desc, addons: addons || null } };
     try{ await nSend(p); }
     catch(e){ p.err = e.message; N_PENDING = p; }
     const note = N_PENDING ? `انحفظ ${data.code} هنا، بس ما وصل للمنسق — اضغطي إعادة الإرسال` : `تم ${data.code} ووصل للمنسق${data.approval==='بانتظار الاعتماد' ? ' (التحويل بانتظار اعتماد الأدمن)' : ''}`;
     toast(note); msg('nMsg', note, !N_PENDING); nPendingShow();
     // فورم فاضي للطلب الجاي
-    ['nPhone','nRecipient','nAmount','nFee','nDesc','nCard','nRegionOther','nAddress','nTxn','nReceipt'].forEach(id => $(id).value='');
+    ['nPhone','nRecipient','nAmount','nFee','nDesc','nAddons','nCard','nRegionOther','nAddress','nTxn','nReceipt'].forEach(id => $(id).value='');
     document.querySelectorAll('input[name="npay"],input[name="nreg"]').forEach(r => r.checked=false);
-    $('nf1').checked = true; $('nSlot').value = ''; $('nSource').value=''; $('nFlorist').value='';
+    $('nf1').checked = true; $('nSlot').value = ''; $('nFlorist').value=''; $('nPhoneHint').textContent=''; N_KNOWN = null;
     $('nDate').value = today(); $('nPaid').value = today(); $('nPaidHint').textContent='';
-    $('nRecv').value = `${pad(new Date().getHours())}:${pad(new Date().getMinutes())}`;
     ['nReceiptWrap','nTxnWrap'].forEach(id => $(id).classList.add('hidden'));
     N_PHOTOS = []; N_VOICES = []; nRenderPhotos(); nRenderVoices(); nFulSync();
     loadLink();
