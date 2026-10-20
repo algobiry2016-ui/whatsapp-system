@@ -445,15 +445,11 @@ details.rep[open] summary{margin-bottom:12px}
           <input type="radio" name="nful" id="nf2" value="استلام"><label for="nf2">استلام من المحل</label>
         </div>
       </div>
-      <div class="field wide" id="nRegionWrap">
-        <div class="chips">
-          <input type="radio" name="nreg" id="nr1" value="أبها"><label for="nr1">أبها</label>
-          <input type="radio" name="nreg" id="nr2" value="خميس مشيط"><label for="nr2">خميس مشيط</label>
-          <input type="radio" name="nreg" id="nr3" value="أخرى"><label for="nr3">منطقة ثانية</label>
-        </div>
+      <!-- المناطق بمبلغ توصيلها (نفس الموقع، ومعها اللي اعتمدتها الإدارة)، تنعبّى من برنامج الطلبات -->
+      <div class="field wide" id="nRegionWrap"><label>المنطقة</label>
+        <div class="chips" id="nRegions"></div>
       </div>
-      <div class="field hidden" id="nRegionOtherWrap"><label for="nRegionOther">اسم المنطقة</label><input id="nRegionOther" placeholder="مثال: الطريب"></div>
-      <div class="field" id="nAddressWrap"><label for="nAddress">العنوان أو الموقع <span class="opt">(اختياري)</span></label><input id="nAddress"></div>
+      <div class="field hidden" id="nRegionOtherWrap"><label for="nRegionOther">اسم المنطقة الجديدة <span class="opt">(تعتمدها الإدارة)</span></label><input id="nRegionOther" placeholder="مثال: الطريب"></div>
       <div class="field"><label for="nDate">يوم التسليم</label><input id="nDate" type="date"></div>
       <div class="field"><label for="nSlot">الفترة</label><select id="nSlot"><option value="">اختاري</option><option value="morning">9 – 12 الصبح</option><option value="afternoon">2 – 7 مساءً</option><option value="evening">7 – 11 مساءً</option></select></div>
       <div class="field amount"><label for="nAmount">مبلغ الطلب</label><input id="nAmount" inputmode="decimal" placeholder="0"><small class="hint" id="nTotalHint"></small></div>
@@ -833,12 +829,11 @@ document.querySelectorAll('input[name="npay"]').forEach(r => r.onchange = () => 
 });
 function nFulSync(){
   const pick = radioVal('nful')==='استلام';
-  ['nRegionWrap','nAddressWrap'].forEach(id => $(id).classList.toggle('hidden', pick));
-  $('nRegionOtherWrap').classList.toggle('hidden', pick || radioVal('nreg')!=='أخرى');
+  $('nRegionWrap').classList.toggle('hidden', pick);
+  $('nRegionOtherWrap').classList.toggle('hidden', pick || radioVal('nreg')!=='__new');
   nFeeSync();
 }
 document.querySelectorAll('input[name="nful"]').forEach(r => r.onchange = nFulSync);
-document.querySelectorAll('input[name="nreg"]').forEach(r => r.onchange = nFulSync);
 // هنا مبلغ الطلب ومبلغ التوصيل في خانتين من الحين (amount يبقى الإجمالي المدفوع)
 function nFeeSync(){
   const pick = radioVal('nful')==='استلام';
@@ -861,15 +856,31 @@ $('nPhone').onblur = nCustomer;
 ['nAmount','nFee'].forEach(id => $(id).addEventListener('input', nFeeSync));
 $('nPaid').oninput = () => { const d = $('nPaid').value, t = today(); $('nPaidHint').textContent = !d || d===t ? '' : d > t ? 'ما يصير تاريخ تحويل في المستقبل' : (isAdmin() ? 'تاريخ سابق' : 'تاريخ سابق، بينتظر اعتماد الأدمن'); };
 
+// المناطق: الضغط على منطقة يكتب مبلغ توصيلها، و"منطقة ثانية" تكتب اسمها ومبلغها
+let N_AREAS = [{ name:'خميس مشيط', fee:25 }, { name:'أبها', fee:25 }, { name:'تندحه - أحد رفيدة', fee:25 }, { name:'الفرعاء - الواديين', fee:50 }, { name:'وادي بن هشبل', fee:50 }];
+function nRenderAreas(){
+  const keep = radioVal('nreg');
+  $('nRegions').innerHTML = N_AREAS.map((a,i) => `<input type="radio" name="nreg" id="nra${i}" value="${esc(a.name)}" data-fee="${a.fee ?? ''}"><label for="nra${i}">${esc(a.name)}${a.fee != null ? ` · ${a.fee}` : ''}</label>`).join('')
+    + `<input type="radio" name="nreg" id="nraNew" value="__new"><label for="nraNew">منطقة ثانية</label>`;
+  const again = [...document.querySelectorAll('input[name="nreg"]')].find(r => r.value === keep);
+  if (again) again.checked = true;
+}
+$('nRegions').onchange = e => {
+  const r = e.target.closest('input[name="nreg"]'); if (!r) return;
+  if (r.value !== '__new' && r.dataset.fee !== '') $('nFee').value = r.dataset.fee;
+  if (r.value === '__new') $('nFee').value = '';
+  nFulSync();
+};
 let N_READY = false;
 async function loadLink(){
   if (!N_READY){
     N_READY = true;
     $('nDate').value = today(); $('nPaid').value = today(); $('nPaid').max = today(); $('nDate').min = today();
-    nRenderPhotos(); nRenderVoices(); nFulSync();
+    nRenderPhotos(); nRenderVoices(); nRenderAreas(); nFulSync();
   }
   try{
-    const { orders, florists } = await ordersApi('/api/wa/orders');
+    const { orders, florists, areas } = await ordersApi('/api/wa/orders');
+    if (areas?.length){ N_AREAS = areas; nRenderAreas(); }
     const keep = $('nFlorist').value;
     $('nFlorist').innerHTML = '<option value="">— اختاري المنسق —</option>' + florists.map(f => `<option value="${f.id}">${esc(f.full_name)}</option>`).join('');
     $('nFlorist').value = keep;
@@ -928,7 +939,10 @@ $('nSave').onclick = async () => {
   const phone = normPhone($('nPhone').value), recipient = normPhone($('nRecipient').value);
   const amount = num($('nAmount').value), desc = $('nDesc').value.trim();
   const ful = radioVal('nful')||'توصيل', pick = ful==='استلام';
-  const payment = radioVal('npay'), region = pick ? PICKUP_REGION : radioVal('nreg'), delivery_date = $('nDate').value, slot = $('nSlot').value;
+  const payment = radioVal('npay'), area = pick ? '' : (radioVal('nreg') === '__new' ? $('nRegionOther').value.trim() : radioVal('nreg'));
+  // هنا المنطقة: أبها أو خميس مشيط، وغيرها "أخرى" باسمها (مثل التبويب القديم)
+  const region = pick ? PICKUP_REGION : (area === 'أبها' || area === 'خميس مشيط' ? area : (area ? 'أخرى' : ''));
+  const delivery_date = $('nDate').value, slot = $('nSlot').value;
   if (!phoneCheck(phone, 'nMsg')) return;
   if (recipient && phoneBad(recipient)) return msg('nMsg', 'جوال المستلم: ' + phoneIssue(recipient));
   if (!desc) return msg('nMsg','اكتبي وصف الطلب');
@@ -936,8 +950,8 @@ $('nSave').onclick = async () => {
   const fee = pick ? 0 : num($('nFee').value);
   if (!pick && (fee === null || fee < 0)) return msg('nMsg','اكتبي مبلغ التوصيل (ولو صفر)');
   if (!payment) return msg('nMsg','اختاري وسيلة الدفع');
-  if (!region) return msg('nMsg','اختاري المنطقة');
-  if (!pick && region==='أخرى' && !$('nRegionOther').value.trim()) return msg('nMsg','اكتبي اسم المنطقة');
+  if (!pick && !radioVal('nreg')) return msg('nMsg','اختاري المنطقة');
+  if (!pick && !area) return msg('nMsg','اكتبي اسم المنطقة الجديدة');
   if (!delivery_date || delivery_date < today()) return msg('nMsg','اختاري تاريخ التسليم (اليوم أو بعده)');
   if (!slot) return msg('nMsg','اختاري الفترة');
   // يوسف ما يشوف طلبات الواتس، فالطلب لازم يروح لمنسق من هنا
@@ -951,7 +965,7 @@ $('nSave').onclick = async () => {
     if (N_KNOWN === null) await nCustomer();
     const addons = $('nAddons').value.trim();
     const row = { phone, amount: amount + (fee || 0), description: addons ? `${desc} + ${addons}` : desc, payment, region, delivery_date, paid_date,
-      region_other: !pick && region==='أخرى' ? $('nRegionOther').value.trim() : null,
+      region_other: !pick && region==='أخرى' ? area : null,
       fulfillment: ful, order_type:'عادي', source: N_KNOWN === null ? null : (N_KNOWN ? 'عميل سابق' : 'عميل جديد'), status:'قيد التجهيز',
       txn_ref: payment!=='تحويل بنكي' ? ($('nTxn').value.trim()||null) : null, receipt_path };
     // وقت الاستقبال: وقت التسجيل نفسه
@@ -962,14 +976,14 @@ $('nSave').onclick = async () => {
     // 2) للمنسقين
     const p = { waId:data.id, code:data.code, photos: await Promise.all(N_PHOTOS.map(nShrink)), voices:[...N_VOICES],
       body:{ delivery_slot:slot, recipient_phone: recipient || null, card_message: $('nCard').value.trim() || null,
-        address: pick ? null : ($('nAddress').value.trim() || null), florist_id: $('nFlorist').value || null,
+        florist_id: $('nFlorist').value || null,
         description: desc, addons: addons || null } };
     try{ await nSend(p); }
     catch(e){ p.err = e.message; N_PENDING = p; }
     const note = N_PENDING ? `انحفظ ${data.code} هنا، بس ما وصل للمنسق — اضغطي إعادة الإرسال` : `تم ${data.code} ووصل للمنسق${data.approval==='بانتظار الاعتماد' ? ' (التحويل بانتظار اعتماد الأدمن)' : ''}`;
     toast(note); msg('nMsg', note, !N_PENDING); nPendingShow();
     // فورم فاضي للطلب الجاي
-    ['nPhone','nRecipient','nAmount','nFee','nDesc','nAddons','nCard','nRegionOther','nAddress','nTxn','nReceipt'].forEach(id => $(id).value='');
+    ['nPhone','nRecipient','nAmount','nFee','nDesc','nAddons','nCard','nRegionOther','nTxn','nReceipt'].forEach(id => $(id).value='');
     document.querySelectorAll('input[name="npay"],input[name="nreg"]').forEach(r => r.checked=false);
     $('nf1').checked = true; $('nSlot').value = ''; $('nFlorist').value=''; $('nPhoneHint').textContent=''; N_KNOWN = null;
     $('nDate').value = today(); $('nPaid').value = today(); $('nPaidHint').textContent='';
