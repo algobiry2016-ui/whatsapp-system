@@ -475,7 +475,7 @@ details.rep[open] summary{margin-bottom:12px}
     <div id="nVoices"></div>
     <button class="btn ghost" id="nRec" type="button" style="width:100%;margin-top:8px">🎙️ سجّلي صوت للمنسق</button>
     <small class="hint" id="nRecMsg"></small>
-    <div class="field" style="margin-top:10px"><label for="nFlorist">🌸 المنسق</label><select id="nFlorist"><option value="">بعدين</option></select></div>
+    <div class="field" style="margin-top:10px"><label for="nFlorist">🌸 المنسق</label><select id="nFlorist"><option value="">— اختاري المنسق —</option></select></div>
 
     <div class="actions"><button class="btn" id="nSave">حفظ وإرسال للمنسق</button><span class="msg" id="nMsg"></span></div>
     <div class="nRetry hidden" id="nRetry"><span id="nRetryText"></span> <button class="btn small" id="nRetryBtn">إعادة الإرسال</button></div>
@@ -871,7 +871,7 @@ async function loadLink(){
   try{
     const { orders, florists } = await ordersApi('/api/wa/orders');
     const keep = $('nFlorist').value;
-    $('nFlorist').innerHTML = '<option value="">بعدين</option>' + florists.map(f => `<option value="${f.id}">${esc(f.full_name)}</option>`).join('');
+    $('nFlorist').innerHTML = '<option value="">— اختاري المنسق —</option>' + florists.map(f => `<option value="${f.id}">${esc(f.full_name)}</option>`).join('');
     $('nFlorist').value = keep;
     const opts = sel => florists.map(f => `<option value="${f.id}" ${f.id===sel?'selected':''}>${esc(f.full_name)}</option>`).join('');
     $('nRows').innerHTML = orders.length ? orders.map(o => `<tr>
@@ -940,6 +940,8 @@ $('nSave').onclick = async () => {
   if (!pick && region==='أخرى' && !$('nRegionOther').value.trim()) return msg('nMsg','اكتبي اسم المنطقة');
   if (!delivery_date || delivery_date < today()) return msg('nMsg','اختاري تاريخ التسليم (اليوم أو بعده)');
   if (!slot) return msg('nMsg','اختاري الفترة');
+  // يوسف ما يشوف طلبات الواتس، فالطلب لازم يروح لمنسق من هنا
+  if (!$('nFlorist').value) return msg('nMsg','اختاري المنسق');
   const paid_date = $('nPaid').value;
   if (!paid_date || paid_date > today()) return msg('nMsg','تاريخ التحويل غير صحيح');
   $('nSave').disabled = true;
