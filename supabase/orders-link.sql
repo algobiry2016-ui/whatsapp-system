@@ -1,9 +1,9 @@
 -- ربط طلبات الواتس مع برنامج طلبات الموقع (website-orders).
--- منال تسجّل الطلب في برنامج الطلبات (بالصور والتسجيلات الصوتية للمنسق)، وهو يضيف نسخة
--- هنا باسمها ويحدّث حالتها: تم التجهيز، تم التوصيل/الاستلام، ملغي.
--- البرنامج يدخل بمفتاح الخدمة (service role)، وهذا التعديل يسمح له بشيئين فقط:
---   1) إضافة طلب بنفس قواعد الموظفة (التحويل بتاريخ سابق يروح لاعتماد الإدارة، وما يتوثّق).
---   2) تغيير الحالة فقط على الطلبات الموجودة.
+-- منال تسجّل الطلب هنا مثل العادة من تبويب "طلبات الواتس" (باسمها وبنفس قواعد الاعتماد)،
+-- والتبويب يرسله لبرنامج الطلبات (بالصور والتسجيلات الصوتية والمنسق). وبعدها البرنامج
+-- يحدّث حالته هنا: تم التجهيز، تم التوصيل/الاستلام، ملغي.
+-- البرنامج يدخل بمفتاح الخدمة (service role)، وهذا التعديل يسمح له بشي واحد فقط:
+-- تغيير الحالة على الطلبات الموجودة. ما يضيف ولا يحذف ولا يعدّل مبلغ ولا يوثّق.
 -- وسجل التدقيق يكتب "orders-system" بدل الإيميل لما يكون التغيير منه.
 -- ما يمسح ولا يغيّر أي بيانات موجودة.
 
@@ -17,20 +17,9 @@ declare
   r text := wa_role();
   me text := auth.jwt() ->> 'email';
 begin
-  -- برنامج طلبات الموقع (مفتاح الخدمة): نفس قواعد الموظفة، والإيميل اللي يرسله هو صاحبة الطلب.
+  -- برنامج طلبات الموقع (مفتاح الخدمة): يغيّر الحالة فقط.
   if r is null and auth.role() = 'service_role' then
-    if tg_op = 'INSERT' then
-      new.created_at := now();
-      if new.created_by is null or not exists (select 1 from wa_profiles where lower(email) = lower(new.created_by)) then
-        raise exception 'لا توجد صلاحية';
-      end if;
-      if new.paid_date is null then new.paid_date := wa_today(); end if;
-      if new.paid_date > wa_today() then raise exception 'تاريخ التحويل ما يصير في المستقبل'; end if;
-      new.verified := false; new.verified_by := null; new.verified_at := null;
-      new.reject_reason := null; new.approved_by := null; new.approved_at := null;
-      new.approval := case when new.paid_date < wa_today() then 'بانتظار الاعتماد' else 'معتمد' end;
-      return new;
-    end if;
+    if tg_op = 'INSERT' then raise exception 'لا توجد صلاحية'; end if;
     new.id := old.id; new.created_at := old.created_at; new.created_by := old.created_by;
     if (to_jsonb(new) - 'status' - 'delivered_at' - 'code') is distinct from (to_jsonb(old) - 'status' - 'delivered_at' - 'code') then
       raise exception 'غير مسموح: برنامج الطلبات يغيّر الحالة فقط';
