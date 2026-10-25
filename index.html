@@ -489,13 +489,9 @@ details.rep[open] summary{margin-bottom:12px}
   </section>
 </div>
 
-<!-- ============ طلبات الموقع: برنامج الطلبات نفسه، داخلة باسمها (اطلاع فقط) ============ -->
+<!-- ============ طلبات الموقع: لوحة برنامج الطلبات نفسها داخل الصفحة (اطلاع فقط) ============ -->
 <div data-view="site" class="hidden">
-  <section class="panel">
-    <h2>طلبات الموقع</h2>
-    <p class="msg" id="sMsg">جاري فتح طلبات الموقع…</p>
-    <div class="actions"><button class="btn" id="sOpen">فتح طلبات الموقع</button></div>
-  </section>
+  <iframe id="sFrame" title="طلبات الموقع" style="display:block;width:100%;height:calc(100vh - 150px);min-height:520px;border:0;border-radius:14px;background:#fff"></iframe>
 </div>
 
 <!-- ============ النشاط اليومي ============ -->
@@ -1057,16 +1053,17 @@ $('pwSave').onclick = async () => {
 };
 
 /* ================== طلبات الموقع ================== */
-// تفتح برنامج الطلبات نفسه (نفس لوحة الفريق، اطلاع بس) في نفس الشاشة وهي داخلة باسمها:
-// برنامج الطلبات يتعرّف عليها من دخولها هنا ويعطيها رابط دخول لمرة وحدة، فما فيه دخول ثاني.
-async function loadSite(){
-  $('sMsg').textContent = 'جاري فتح طلبات الموقع…';
-  try{
-    const { url } = await ordersApi('/api/wa/sso', { method:'POST', body:'{}' });
-    location.assign(url);
-  }catch(e){ $('sMsg').textContent = 'ما انفتحت: ' + e.message; }
+// لوحة برنامج الطلبات نفسها (نفس البطاقات وصفحة الطلب اللي يشوفها الفريق) داخل التبويب، اطلاع بس.
+// تدخل بدخولها هنا: اللوحة تطلب دخولها والصفحة ترسله لها، فما فيه دخول ثاني.
+function loadSite(){
+  const f = $('sFrame');
+  if (!f.src) f.src = ORDERS_API + '/embed/wa';
 }
-$('sOpen').onclick = () => loadSite();
+window.addEventListener('message', async e => {
+  if (e.origin !== ORDERS_API || e.data?.type !== 'orders-ready') return;
+  const { data:{ session } } = await sb.auth.getSession();
+  if (session) e.source.postMessage({ type:'orders-token', token: session.access_token }, ORDERS_API);
+});
 
 /* ================== التبويبات ================== */
 const loaders = { orders:loadOrders, link:loadLink, site:loadSite, daily:loadDailyTab, leads:loadLeads, complaints:loadComplaints, customers:loadCustomers, reports:loadReportTab, approvals:loadApprovals };
