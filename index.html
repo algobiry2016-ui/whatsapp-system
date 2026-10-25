@@ -489,12 +489,12 @@ details.rep[open] summary{margin-bottom:12px}
   </section>
 </div>
 
-<!-- ============ طلبات الموقع: نفس برنامج الطلبات (اطلاع فقط، لخدمة العملاء) ============ -->
+<!-- ============ طلبات الموقع: برنامج الطلبات نفسه، داخلة باسمها (اطلاع فقط) ============ -->
 <div data-view="site" class="hidden">
   <section class="panel">
     <h2>طلبات الموقع</h2>
-    <p class="sub">نفس برنامج الطلبات اللي يشتغل عليه الفريق، بنفس الشكل: كل الطلبات وحالتها، والبحث برقم الطلب أو جوال المرسل. للاطلاع بس، ما فيه أي تعديل. الدخول بجوالك وكلمة المرور اللي تعطيك إياها الإدارة.</p>
-    <div class="actions"><a class="btn" href="https://website-orders-two.vercel.app/orders" target="_blank" rel="noopener">فتح طلبات الموقع ↗</a></div>
+    <p class="msg" id="sMsg">جاري فتح طلبات الموقع…</p>
+    <div class="actions"><button class="btn" id="sOpen">فتح طلبات الموقع</button></div>
   </section>
 </div>
 
@@ -1057,8 +1057,16 @@ $('pwSave').onclick = async () => {
 };
 
 /* ================== طلبات الموقع ================== */
-// يفتح برنامج الطلبات نفسه (دور خدمة العملاء: نفس اللوحة، اطلاع بس).
-function loadSite(){}
+// تفتح برنامج الطلبات نفسه (نفس لوحة الفريق، اطلاع بس) في نفس الشاشة وهي داخلة باسمها:
+// برنامج الطلبات يتعرّف عليها من دخولها هنا ويعطيها رابط دخول لمرة وحدة، فما فيه دخول ثاني.
+async function loadSite(){
+  $('sMsg').textContent = 'جاري فتح طلبات الموقع…';
+  try{
+    const { url } = await ordersApi('/api/wa/sso', { method:'POST', body:'{}' });
+    location.assign(url);
+  }catch(e){ $('sMsg').textContent = 'ما انفتحت: ' + e.message; }
+}
+$('sOpen').onclick = () => loadSite();
 
 /* ================== التبويبات ================== */
 const loaders = { orders:loadOrders, link:loadLink, site:loadSite, daily:loadDailyTab, leads:loadLeads, complaints:loadComplaints, customers:loadCustomers, reports:loadReportTab, approvals:loadApprovals };
