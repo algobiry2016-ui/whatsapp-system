@@ -331,6 +331,7 @@ details.rep[open] summary{margin-bottom:12px}
   <nav class="tabs" id="tabs">
     <button data-tab="orders" class="on">الطلبات</button>
     <button data-tab="link">طلبات الواتس <span class="tag">جديد</span></button>
+    <button data-tab="site">طلبات الموقع</button>
     <button data-tab="daily">النشاط اليومي</button>
     <button data-tab="leads">العملاء المحتملين</button>
     <button data-tab="complaints">الشكاوى</button>
@@ -485,6 +486,21 @@ details.rep[open] summary{margin-bottom:12px}
     <h2>طلباتي المرسلة</h2>
     <p class="sub">المفتوحة، وآخر 3 أيام. تقدرين تسندين أو تحوّلين المنسق قبل ما يجهز.</p>
     <div class="tablewrap"><table><thead><tr><th>الرقم</th><th>التسليم</th><th>المنطقة</th><th>الحالة</th><th>المنسق</th><th>المندوب</th></tr></thead><tbody id="nRows"></tbody></table></div>
+  </section>
+</div>
+
+<!-- ============ طلبات الموقع (اطلاع فقط، لخدمة العملاء) ============ -->
+<div data-view="site" class="hidden">
+  <section class="panel">
+    <h2>طلبات الموقع</h2>
+    <p class="sub">للاطلاع بس عشان تردين على العميل: وين طلبه الحين. ابحثي برقم الطلب (سلة، WA-، SH-) أو جوال المرسل أو المستلم. بدون بحث تطلع طلبات اليوم.</p>
+    <div class="actions" style="margin-top:0">
+      <input id="sQ" inputmode="search" placeholder="رقم الطلب أو الجوال" style="flex:1;min-width:0">
+      <button class="btn" id="sGo">🔍 بحث</button>
+      <button class="btn ghost" id="sToday">طلبات اليوم</button>
+    </div>
+    <p class="msg" id="sMsg"></p>
+    <div id="sList"></div>
   </section>
 </div>
 
@@ -1046,8 +1062,47 @@ $('pwSave').onclick = async () => {
   $('pwDlg').close(); toast('تم تغيير كلمة المرور');
 };
 
+/* ================== طلبات الموقع (اطلاع فقط) ================== */
+// من برنامج الطلبات بدخولها هنا: وين الطلب الحين، ومين معه، وصور التسليم. ما فيه أي تعديل.
+const S_TONE = { delivered:'', canceled:'rose', out_for_delivery:'blue', with_rep:'blue', with_barq:'blue', ready:'violet', awaiting_pickup:'violet' };
+async function loadSite(q){
+  q = typeof q === 'string' ? q : $('sQ').value.trim();
+  $('sMsg').textContent = 'جاري التحميل…'; $('sList').innerHTML = '';
+  try{
+    const { orders } = await ordersApi('/api/wa/lookup' + (q ? '?q=' + encodeURIComponent(q) : ''));
+    $('sMsg').textContent = q ? `نتيجة البحث: ${orders.length}` : `طلبات اليوم: ${orders.length}`;
+    $('sList').innerHTML = orders.length ? orders.map(sCard).join('') : '<p class="sub">ما لقيت طلب</p>';
+  }catch(e){ $('sMsg').textContent = 'ما قدرنا نجيب الطلبات: ' + e.message; }
+}
+function sCard(o){
+  const t = iso => new Date(iso).toLocaleString('ar-SA-u-nu-latn', { timeZone:'Asia/Riyadh', month:'numeric', day:'numeric', hour:'numeric', minute:'2-digit' });
+  const ph = (p, n) => p ? `<a href="tel:${esc(p)}" dir="ltr">${esc(p)}</a>${n ? ` (${esc(n)})` : ''}` : '—';
+  const photos = [o.ready_photo && `<a href="${esc(o.ready_photo)}" target="_blank" rel="noopener">🌸 صورة الطلب الجاهز</a>`, ...o.delivered_photos.filter(Boolean).map((u,i) => `<a href="${esc(u)}" target="_blank" rel="noopener">📸 صورة التسليم ${i+1}</a>`)].filter(Boolean);
+  return `<article class="panel" style="margin:10px 0;padding:12px">
+    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+      <b dir="ltr">#${esc(o.ref)}</b>
+      <span class="tag ${S_TONE[o.status] ?? 'warn'}">${esc(o.status_ar)}</span>
+      <span class="tag blue">${esc(o.channel)}</span>
+      ${o.branch ? `<span class="tag blue">${esc(o.branch)}</span>` : ''}
+      ${o.anonymous ? '<span class="tag rose" title="لا تقولين للمستلم مين المرسل">مجهول</span>' : ''}
+      ${o.pickup ? '<span class="tag pick">استلام من المتجر</span>' : ''}
+    </div>
+    <p style="margin:6px 0">📅 ${esc(o.date ? dayLabel(o.date) : '—')}${o.slot ? ' · ' + esc(o.slot) : ''} · 📍 ${esc(o.area || '—')}</p>
+    <p style="margin:6px 0">${esc(o.items.join('، '))}</p>
+    <p class="sub" style="margin:6px 0">المرسل: ${ph(o.customer_phone, o.customer_name)} · المستلم: ${ph(o.recipient_phone, o.recipient_name)}</p>
+    <p class="sub" style="margin:6px 0">🌸 المنسق: ${esc(o.florist || '—')} · 🚚 المندوب: ${esc(o.rep || '—')}${o.total != null ? ` · 💰 ${esc(o.total)} ${esc(o.payment || '')}` : ''}</p>
+    ${o.note ? `<p class="sub" style="color:var(--rose)">سبب الإلغاء: ${esc(o.note)}</p>` : ''}
+    ${o.card_message ? `<details><summary>العبارة</summary><p style="white-space:pre-wrap">${esc(o.card_message)}</p></details>` : ''}
+    ${photos.length ? `<p style="margin:6px 0;display:flex;flex-wrap:wrap;gap:10px">${photos.join('')}</p>` : ''}
+    <details><summary>خطوات الطلب (${o.steps.length})</summary><ul style="margin:6px 0;padding-inline-start:18px">${o.steps.map(s => `<li><span dir="ltr">${esc(t(s.at))}</span> — ${esc(s.note || s.status)}</li>`).join('')}</ul></details>
+  </article>`;
+}
+$('sGo').onclick = () => loadSite();
+$('sToday').onclick = () => { $('sQ').value = ''; loadSite(''); };
+$('sQ').onkeydown = e => { if (e.key === 'Enter') loadSite(); };
+
 /* ================== التبويبات ================== */
-const loaders = { orders:loadOrders, link:loadLink, daily:loadDailyTab, leads:loadLeads, complaints:loadComplaints, customers:loadCustomers, reports:loadReportTab, approvals:loadApprovals };
+const loaders = { orders:loadOrders, link:loadLink, site:loadSite, daily:loadDailyTab, leads:loadLeads, complaints:loadComplaints, customers:loadCustomers, reports:loadReportTab, approvals:loadApprovals };
 function showTab(t){
   document.querySelectorAll('#tabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab===t); if (b.dataset.tab===t) $('curTab').textContent = b.textContent; });
   closeMenu();
