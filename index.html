@@ -489,18 +489,12 @@ details.rep[open] summary{margin-bottom:12px}
   </section>
 </div>
 
-<!-- ============ طلبات الموقع (اطلاع فقط، لخدمة العملاء) ============ -->
+<!-- ============ طلبات الموقع: نفس برنامج الطلبات (اطلاع فقط، لخدمة العملاء) ============ -->
 <div data-view="site" class="hidden">
   <section class="panel">
     <h2>طلبات الموقع</h2>
-    <p class="sub">للاطلاع بس عشان تردين على العميل: وين طلبه الحين. ابحثي برقم الطلب (سلة، WA-، SH-) أو جوال المرسل أو المستلم. بدون بحث تطلع طلبات اليوم.</p>
-    <div class="actions" style="margin-top:0">
-      <input id="sQ" inputmode="search" placeholder="رقم الطلب أو الجوال" style="flex:1;min-width:0">
-      <button class="btn" id="sGo">🔍 بحث</button>
-      <button class="btn ghost" id="sToday">طلبات اليوم</button>
-    </div>
-    <p class="msg" id="sMsg"></p>
-    <div id="sList"></div>
+    <p class="sub">نفس برنامج الطلبات اللي يشتغل عليه الفريق، بنفس الشكل: كل الطلبات وحالتها، والبحث برقم الطلب أو جوال المرسل. للاطلاع بس، ما فيه أي تعديل. الدخول بجوالك وكلمة المرور اللي تعطيك إياها الإدارة.</p>
+    <div class="actions"><a class="btn" href="https://website-orders-two.vercel.app/orders" target="_blank" rel="noopener">فتح طلبات الموقع ↗</a></div>
   </section>
 </div>
 
@@ -1062,56 +1056,9 @@ $('pwSave').onclick = async () => {
   $('pwDlg').close(); toast('تم تغيير كلمة المرور');
 };
 
-/* ================== طلبات الموقع (اطلاع فقط) ================== */
-// من برنامج الطلبات بدخولها هنا: الطلب كامل مثل ما وصل (العبارة وكل خيارات العميل وملاحظاته
-// وملاحظات الفريق)، ووين هو الحين، ومين معه، وصور التسليم. ما فيه أي تعديل.
-const S_TONE = { delivered:'', canceled:'rose', out_for_delivery:'blue', with_rep:'blue', with_barq:'blue', ready:'violet', awaiting_pickup:'violet' };
-async function loadSite(q){
-  q = typeof q === 'string' ? q : $('sQ').value.trim();
-  $('sMsg').textContent = 'جاري التحميل…'; $('sList').innerHTML = '';
-  try{
-    const { orders } = await ordersApi('/api/wa/lookup' + (q ? '?q=' + encodeURIComponent(q) : ''));
-    $('sMsg').textContent = q ? `نتيجة البحث: ${orders.length}` : `طلبات اليوم: ${orders.length}`;
-    $('sList').innerHTML = orders.length ? orders.map(sCard).join('') : '<p class="sub">ما لقيت طلب</p>';
-  }catch(e){ $('sMsg').textContent = 'ما قدرنا نجيب الطلبات: ' + e.message; }
-}
-function sCard(o){
-  // "10/25 15:06" بتوقيت الرياض
-  const t = iso => new Date(iso).toLocaleString('en-GB', { timeZone:'Asia/Riyadh', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).replace(/(\d+)\/(\d+),?/, '$2/$1');
-  const ph = (p, n) => p ? `<a href="tel:${esc(p)}" dir="ltr">${esc(p)}</a>${n ? ` (${esc(n)})` : ''}` : '—';
-  const money = v => v == null ? '' : `${esc(v)} ر.س`;
-  const photos = [o.ready_photo && `<a href="${esc(o.ready_photo)}" target="_blank" rel="noopener">🌸 صورة الطلب الجاهز</a>`, ...o.delivered_photos.filter(Boolean).map((u,i) => `<a href="${esc(u)}" target="_blank" rel="noopener">📸 صورة التسليم ${i+1}</a>`)].filter(Boolean);
-  const row = (k, v) => v ? `<p style="margin:4px 0"><span class="sub">${k}:</span> ${v}</p>` : '';
-  return `<article class="panel" style="margin:10px 0;padding:12px">
-    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
-      <b dir="ltr">#${esc(o.ref)}</b>
-      <span class="tag ${S_TONE[o.status] ?? 'warn'}">${esc(o.status_ar)}</span>
-      <span class="tag blue">${esc(o.channel)}</span>
-      ${o.branch ? `<span class="tag blue">${esc(o.branch)}</span>` : ''}
-      ${o.anonymous ? '<span class="tag rose" title="لا تقولين للمستلم مين المرسل">مجهول</span>' : ''}
-      ${o.pickup ? '<span class="tag pick">استلام من المتجر</span>' : ''}
-    </div>
-    ${o.note ? `<p style="margin:6px 0;color:#b42318;font-weight:600">📝 ${esc(o.note)}</p>` : ''}
-    ${o.steps.filter(s => (s.note || '').startsWith('إضافة ملاحظة')).map(s => `<p style="margin:4px 0;padding:6px 8px;background:#fff7d6;border-radius:8px">📝 ${esc(s.note.replace(/^إضافة ملاحظة — /, ''))} <span class="sub" dir="ltr">${esc(t(s.at))}</span></p>`).join('')}
-    ${o.card_message ? `<div style="margin:8px 0;padding:8px;border:1px dashed var(--line,#ccc);border-radius:8px;white-space:pre-wrap"><span class="sub">💌 العبارة:</span>\n${esc(o.card_message)}</div>` : ''}
-    ${row('📅 التوصيل', `${esc(o.date ? dayLabel(o.date) + ' ' + o.date : '—')}${o.slot ? ' · ' + esc(o.slot) : ''}`)}
-    ${row('📍 المنطقة', esc(o.area || '—') + (o.city ? ` · ${esc(o.city)}` : ''))}
-    ${row('🏠 العنوان', o.address ? esc(o.address) : '')}
-    ${row('🕒 وقت الطلب', `<span dir="ltr">${esc(o.ordered_at)}</span>`)}
-    ${row('المرسل', ph(o.customer_phone, o.customer_name))}
-    ${row('المستلم', ph(o.recipient_phone, o.recipient_name))}
-    <div style="margin:8px 0">${o.items.map(i => `<p style="margin:3px 0">${i.addon ? '➕ ' : '🌷 '}<b>${esc(i.name)}</b>${i.quantity > 1 ? ` ×${i.quantity}` : ''}${i.price != null ? ` <span class="sub">${money(i.price)}</span>` : ''}${i.notes ? `<br><span style="color:#b42318">ملاحظة العميل: ${esc(i.notes)}</span>` : ''}</p>`).join('')}</div>
-    ${o.attachments.length ? `<div style="margin:6px 0">${o.attachments.map(a => `<p style="margin:3px 0"><span class="sub">${esc(a.name)}:</span> <b style="color:#b42318">${/^https?:/.test(a.value) ? `<a href="${esc(a.value)}" target="_blank" rel="noopener">فتح</a>` : esc(a.value)}</b></p>`).join('')}</div>` : ''}
-    ${row('💰 المبلغ', `${money(o.total)}${o.delivery_fee ? ` (منها توصيل ${money(o.delivery_fee)})` : ''}${o.payment ? ' · ' + esc(o.payment) : ''}`)}
-    ${row('🌸 المنسق', esc(o.florist || '—'))}
-    ${row('🚚 المندوب', esc(o.rep || '—') + (o.tracking ? ` · شحنة <span dir="ltr">${esc(o.tracking)}</span>` : ''))}
-    ${photos.length ? `<p style="margin:6px 0;display:flex;flex-wrap:wrap;gap:10px">${photos.join('')}</p>` : ''}
-    <details><summary>سجل الطلب (${o.steps.length})</summary><ul style="margin:6px 0;padding-inline-start:18px">${o.steps.map(s => `<li><span dir="ltr">${esc(t(s.at))}</span> — ${esc(s.note || s.status)}</li>`).join('')}</ul></details>
-  </article>`;
-}
-$('sGo').onclick = () => loadSite();
-$('sToday').onclick = () => { $('sQ').value = ''; loadSite(''); };
-$('sQ').onkeydown = e => { if (e.key === 'Enter') loadSite(); };
+/* ================== طلبات الموقع ================== */
+// يفتح برنامج الطلبات نفسه (دور خدمة العملاء: نفس اللوحة، اطلاع بس).
+function loadSite(){}
 
 /* ================== التبويبات ================== */
 const loaders = { orders:loadOrders, link:loadLink, site:loadSite, daily:loadDailyTab, leads:loadLeads, complaints:loadComplaints, customers:loadCustomers, reports:loadReportTab, approvals:loadApprovals };
