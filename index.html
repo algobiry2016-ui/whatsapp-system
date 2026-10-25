@@ -1063,7 +1063,8 @@ $('pwSave').onclick = async () => {
 };
 
 /* ================== طلبات الموقع (اطلاع فقط) ================== */
-// من برنامج الطلبات بدخولها هنا: وين الطلب الحين، ومين معه، وصور التسليم. ما فيه أي تعديل.
+// من برنامج الطلبات بدخولها هنا: الطلب كامل مثل ما وصل (العبارة وكل خيارات العميل وملاحظاته
+// وملاحظات الفريق)، ووين هو الحين، ومين معه، وصور التسليم. ما فيه أي تعديل.
 const S_TONE = { delivered:'', canceled:'rose', out_for_delivery:'blue', with_rep:'blue', with_barq:'blue', ready:'violet', awaiting_pickup:'violet' };
 async function loadSite(q){
   q = typeof q === 'string' ? q : $('sQ').value.trim();
@@ -1075,9 +1076,12 @@ async function loadSite(q){
   }catch(e){ $('sMsg').textContent = 'ما قدرنا نجيب الطلبات: ' + e.message; }
 }
 function sCard(o){
-  const t = iso => new Date(iso).toLocaleString('ar-SA-u-nu-latn', { timeZone:'Asia/Riyadh', month:'numeric', day:'numeric', hour:'numeric', minute:'2-digit' });
+  // "10/25 15:06" بتوقيت الرياض
+  const t = iso => new Date(iso).toLocaleString('en-GB', { timeZone:'Asia/Riyadh', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).replace(/(\d+)\/(\d+),?/, '$2/$1');
   const ph = (p, n) => p ? `<a href="tel:${esc(p)}" dir="ltr">${esc(p)}</a>${n ? ` (${esc(n)})` : ''}` : '—';
+  const money = v => v == null ? '' : `${esc(v)} ر.س`;
   const photos = [o.ready_photo && `<a href="${esc(o.ready_photo)}" target="_blank" rel="noopener">🌸 صورة الطلب الجاهز</a>`, ...o.delivered_photos.filter(Boolean).map((u,i) => `<a href="${esc(u)}" target="_blank" rel="noopener">📸 صورة التسليم ${i+1}</a>`)].filter(Boolean);
+  const row = (k, v) => v ? `<p style="margin:4px 0"><span class="sub">${k}:</span> ${v}</p>` : '';
   return `<article class="panel" style="margin:10px 0;padding:12px">
     <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
       <b dir="ltr">#${esc(o.ref)}</b>
@@ -1087,14 +1091,22 @@ function sCard(o){
       ${o.anonymous ? '<span class="tag rose" title="لا تقولين للمستلم مين المرسل">مجهول</span>' : ''}
       ${o.pickup ? '<span class="tag pick">استلام من المتجر</span>' : ''}
     </div>
-    <p style="margin:6px 0">📅 ${esc(o.date ? dayLabel(o.date) : '—')}${o.slot ? ' · ' + esc(o.slot) : ''} · 📍 ${esc(o.area || '—')}</p>
-    <p style="margin:6px 0">${esc(o.items.join('، '))}</p>
-    <p class="sub" style="margin:6px 0">المرسل: ${ph(o.customer_phone, o.customer_name)} · المستلم: ${ph(o.recipient_phone, o.recipient_name)}</p>
-    <p class="sub" style="margin:6px 0">🌸 المنسق: ${esc(o.florist || '—')} · 🚚 المندوب: ${esc(o.rep || '—')}${o.total != null ? ` · 💰 ${esc(o.total)} ${esc(o.payment || '')}` : ''}</p>
-    ${o.note ? `<p class="sub" style="color:var(--rose)">سبب الإلغاء: ${esc(o.note)}</p>` : ''}
-    ${o.card_message ? `<details><summary>العبارة</summary><p style="white-space:pre-wrap">${esc(o.card_message)}</p></details>` : ''}
+    ${o.note ? `<p style="margin:6px 0;color:#b42318;font-weight:600">📝 ${esc(o.note)}</p>` : ''}
+    ${o.steps.filter(s => (s.note || '').startsWith('إضافة ملاحظة')).map(s => `<p style="margin:4px 0;padding:6px 8px;background:#fff7d6;border-radius:8px">📝 ${esc(s.note.replace(/^إضافة ملاحظة — /, ''))} <span class="sub" dir="ltr">${esc(t(s.at))}</span></p>`).join('')}
+    ${o.card_message ? `<div style="margin:8px 0;padding:8px;border:1px dashed var(--line,#ccc);border-radius:8px;white-space:pre-wrap"><span class="sub">💌 العبارة:</span>\n${esc(o.card_message)}</div>` : ''}
+    ${row('📅 التوصيل', `${esc(o.date ? dayLabel(o.date) + ' ' + o.date : '—')}${o.slot ? ' · ' + esc(o.slot) : ''}`)}
+    ${row('📍 المنطقة', esc(o.area || '—') + (o.city ? ` · ${esc(o.city)}` : ''))}
+    ${row('🏠 العنوان', o.address ? esc(o.address) : '')}
+    ${row('🕒 وقت الطلب', `<span dir="ltr">${esc(o.ordered_at)}</span>`)}
+    ${row('المرسل', ph(o.customer_phone, o.customer_name))}
+    ${row('المستلم', ph(o.recipient_phone, o.recipient_name))}
+    <div style="margin:8px 0">${o.items.map(i => `<p style="margin:3px 0">${i.addon ? '➕ ' : '🌷 '}<b>${esc(i.name)}</b>${i.quantity > 1 ? ` ×${i.quantity}` : ''}${i.price != null ? ` <span class="sub">${money(i.price)}</span>` : ''}${i.notes ? `<br><span style="color:#b42318">ملاحظة العميل: ${esc(i.notes)}</span>` : ''}</p>`).join('')}</div>
+    ${o.attachments.length ? `<div style="margin:6px 0">${o.attachments.map(a => `<p style="margin:3px 0"><span class="sub">${esc(a.name)}:</span> <b style="color:#b42318">${/^https?:/.test(a.value) ? `<a href="${esc(a.value)}" target="_blank" rel="noopener">فتح</a>` : esc(a.value)}</b></p>`).join('')}</div>` : ''}
+    ${row('💰 المبلغ', `${money(o.total)}${o.delivery_fee ? ` (منها توصيل ${money(o.delivery_fee)})` : ''}${o.payment ? ' · ' + esc(o.payment) : ''}`)}
+    ${row('🌸 المنسق', esc(o.florist || '—'))}
+    ${row('🚚 المندوب', esc(o.rep || '—') + (o.tracking ? ` · شحنة <span dir="ltr">${esc(o.tracking)}</span>` : ''))}
     ${photos.length ? `<p style="margin:6px 0;display:flex;flex-wrap:wrap;gap:10px">${photos.join('')}</p>` : ''}
-    <details><summary>خطوات الطلب (${o.steps.length})</summary><ul style="margin:6px 0;padding-inline-start:18px">${o.steps.map(s => `<li><span dir="ltr">${esc(t(s.at))}</span> — ${esc(s.note || s.status)}</li>`).join('')}</ul></details>
+    <details><summary>سجل الطلب (${o.steps.length})</summary><ul style="margin:6px 0;padding-inline-start:18px">${o.steps.map(s => `<li><span dir="ltr">${esc(t(s.at))}</span> — ${esc(s.note || s.status)}</li>`).join('')}</ul></details>
   </article>`;
 }
 $('sGo').onclick = () => loadSite();
