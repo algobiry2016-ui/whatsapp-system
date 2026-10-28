@@ -1486,7 +1486,7 @@ async function loadDailyHistory(){
       <td class="num">${leadN[d]||0}</td><td class="num">${ordN[d]||0}</td><td>${st}</td></tr>`; }).join('');
 }
 ['dhFrom','dhTo'].forEach(id => $(id).onchange = loadDailyHistory);
-$('dhXlsx').onclick = () => { const f = $('dhFrom').value, t = $('dhTo').value; if (f && t && f <= t) downloadXlsx(`النشاط-اليومي-${f}-${t}.xlsx`, [dailySheet(f, t)]); };
+$('dhXlsx').onclick = () => { const f = $('dhFrom').value, t = $('dhTo').value; if (f && t && f <= t) downloadXlsx(`النشاط-اليومي-${f}-${t}.xlsx`, [reportSheets(f, t)]); };
 $('dhRows').onclick = e => { const tr = e.target.closest('tr[data-day]'); if (!tr) return; $('dDay').value = tr.dataset.day; loadDaily(); window.scrollTo({ top:0, behavior:'smooth' }); };
 
 /* ================== تنبيه أيام النشاط اللي ما انسجلت ================== */
@@ -1817,42 +1817,62 @@ async function loadReports(){
     ${table('أفضل ١٠ عملاء في الفترة', ['#','الجوال','الطلبات','الإجمالي','المتوسط'], topRows)}
     ${table('سجل الشكاوى', ['الاستلام','الطلب','النوع','التفاصيل','الإجراء','المتسبب','الحالة','مدة الحل'], compRows)}
     ${table('العملاء المحتملين', ['التاريخ','الجوال','استفسر عن','ملاحظة','النتيجة'], leadRows)}`;
-  $('rCsv').onclick = () => exportCSV(REP_ORDERS, `تقرير-الواتس-${from}-${to}.xlsx`, [dailySheet(from, to)]);
+  $('rCsv').onclick = () => downloadXlsx(`تقرير-الواتس-${from}-${to}.xlsx`, [reportSheets(from, to, REP_ORDERS)]);
 }
-function exportCSV(list, name, extra){
+function ordersSheet(list){
   const head = ['الرقم','تاريخ التحويل','تاريخ التسجيل','وقت التسجيل','وقت الاستقبال','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','منها التوصيل','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق','الاعتماد'];
   const rows = list.map(o => [o.code, o.paid_date, fmtDate(o.created_at), fmtTime(o.created_at), o.received_at ? fmtTime(o.received_at) : '', o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.delivery_fee ?? '', o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا', o.approval]);
-  // التقارير: الملخص اليومي فوق، وتحته جدول الطلبات بعناوينه، في نفس الورقة
-  const sheet = !extra ? { name:'الطلبات', head, rows }
-    : Promise.all(extra).then(([d]) => ({ name:'التقرير', head:d.head, rows:[...d.rows, [], [], ['الطلبات'], head, ...rows] }));
-  downloadXlsx(name, [sheet]);
+  return { name:'الطلبات', head, rows };
 }
-// الملخص اليومي: سطر لكل يوم بالطلبات والمبيعات والستوري والمشاهدات والاستفسارات بنوعها والعملاء المحتملين، وتحته الإجمالي
-async function dailySheet(from, to){
+const exportCSV = (list, name) => downloadXlsx(name, [ordersSheet(list)]);
+// بيانات كل يوم: الطلبات والمبيعات من الطلبات، والستوري والمشاهدات والاستفسارات من النشاط اليومي، والعملاء المحتملين
+const INQ = [['inq_price','السعر'],['inq_avail','التوفر'],['inq_delivery','التوصيل'],['inq_occasion','المناسبات'],['inq_other','أخرى']];
+async function dailyData(from, to, orders){
   if (to > today()) to = today();
-  const [{ data:daily }, orders, { data:leads }] = await Promise.all([
+  const [{ data:daily }, paid, leads, complaints] = await Promise.all([
     sb.from('wa_daily').select('*').gte('day', from).lte('day', to),
-    fetchPaid(from, to),
-    sb.from('wa_leads').select('created_at').gte('created_at', startISO(from)).lt('created_at', endISO(to)).limit(5000)
+    orders ? Promise.resolve(orders) : fetchPaid(from, to),
+    leadsWithConversion(from, to), fetchComplaints(from, to)
   ]);
   const byDay = {}; (daily||[]).forEach(r => byDay[r.day] = r);
-  const live = orders.filter(o => o.status!=='ملغي');
-  const leadN = countBy(leads||[], l => fmtDate(l.created_at));
-  const K = ['stories','views','replies','inq_price','inq_avail','inq_delivery','inq_occasion','inq_other'];
-  const head = ['التاريخ','اليوم','عدد الطلبات','المبيعات','منها التوصيل','الستوري','المشاهدات','الردود',
-    'استفسارات السعر','استفسارات التوفر','استفسارات التوصيل','استفسارات المناسبات','استفسارات أخرى','مجموع الاستفسارات','العملاء المحتملين','الحالة','ملاحظات'];
-  const rows = [], tot = Array(13).fill(0); let rec = 0, off = 0, miss = 0;
+  const live = paid.filter(o => o.status!=='ملغي');
+  const days = [];
   for (let d = from; d <= to; d = addDays(1, d)){
-    const r = byDay[d], isOff = r && isOffDay(r), act = r && !isOff, os = live.filter(o => o.paid_date===d);
-    const nums = [os.length, os.reduce((s,o)=>s+Number(o.amount),0), os.reduce((s,o)=>s+Number(o.delivery_fee||0),0),
-      ...K.map(k => act ? Number(r[k]||0) : ''), act ? K.slice(3).reduce((s,k)=>s+Number(r[k]||0),0) : '', leadN[d]||0];
-    nums.forEach((v,i) => { if (v!=='') tot[i] += v; });
-    if (act) rec++; else if (isOff) off++; else if (d < today()) miss++;
-    rows.push([d, WEEK[new Date(d+'T00:00:00').getDay()], ...nums,
-      act ? 'مسجّل' : isOff ? 'ما فيه نشاط' : d < today() ? 'لم يُسجل' : 'لسّا', act ? (r.notes||'') : isOff ? r.notes : '']);
+    const r = byDay[d], off = !!(r && isOffDay(r)), act = !!r && !off, os = live.filter(o => o.paid_date===d);
+    const v = k => act ? Number(r[k]||0) : null;
+    days.push({ d, wd: WEEK[new Date(d+'T00:00:00').getDay()], n: os.length, amt: os.reduce((s,o)=>s+Number(o.amount),0),
+      fee: os.reduce((s,o)=>s+Number(o.delivery_fee||0),0), stories: v('stories'), views: v('views'), replies: v('replies'),
+      inq: Object.fromEntries(INQ.map(([k]) => [k, v(k)])), inqT: act ? INQ.reduce((s,[k])=>s+Number(r[k]||0),0) : null,
+      leads: leads.filter(l => fmtDate(l.created_at)===d).length, complaints: complaints.filter(c => fmtDate(c.received_at)===d).length,
+      status: act ? 'مسجّل' : off ? 'ما فيه نشاط' : d < today() ? 'لم يُسجل' : 'لسّا', notes: r ? (r.notes||'') : '' });
   }
-  rows.push([], ['الإجمالي', `${rows.length} يوم`, ...tot, `${rec} مسجّل · ${off} بدون نشاط · ${miss} ناقص`, '']);
-  return { name:'ملخص يومي', head, rows };
+  return { days, live, leads, complaints };
+}
+// Excel للتحليل: كل تبويب جدول نظيف يبدأ من أول سطر، بدون سطور فاضية ولا مجاميع داخله (المجاميع في تبويب "ملخص")
+async function reportSheets(from, to, orders){
+  const { days, live, leads, complaints } = await dailyData(from, to, orders);
+  const sum = f => days.reduce((s,x) => s + Number(f(x)||0), 0), cnt = st => days.filter(x => x.status===st).length;
+  const sales = sum(x=>x.amt), fees = sum(x=>x.fee);
+  const conv = leads.filter(l => l.converted).length, solved = complaints.filter(c => c.status==='تم الحل').length;
+  const summary = { name:'ملخص', head:['البند','القيمة'], rows:[
+    ['من', from], ['إلى', days.length ? days[days.length-1].d : to], ['عدد الأيام', days.length],
+    ['عدد الطلبات', live.length], ['المبيعات', sales], ['منها التوصيل', fees], ['المبيعات بدون التوصيل', sales - fees],
+    ['متوسط الطلب', live.length ? Math.round(sales / live.length * 100) / 100 : 0],
+    ['الستوري', sum(x=>x.stories)], ['المشاهدات', sum(x=>x.views)], ['الردود', sum(x=>x.replies)],
+    ...INQ.map(([k,l]) => ['استفسارات ' + l, sum(x=>x.inq[k])]), ['مجموع الاستفسارات', sum(x=>x.inqT)],
+    ['العملاء المحتملين', leads.length], ['تحوّلوا لطلب', conv], ['الشكاوى', complaints.length], ['شكاوى تم حلها', solved],
+    ['أيام مسجّلة', cnt('مسجّل')], ['أيام بدون نشاط', cnt('ما فيه نشاط')], ['أيام ما انسجلت', cnt('لم يُسجل')]
+  ]};
+  const daily = { name:'يومي', head:['التاريخ','اليوم','عدد الطلبات','المبيعات','منها التوصيل','الستوري','المشاهدات','الردود',
+      ...INQ.map(([,l]) => 'استفسارات ' + l), 'مجموع الاستفسارات','العملاء المحتملين','الشكاوى','الحالة','ملاحظات'],
+    rows: days.map(x => [x.d, x.wd, x.n, x.amt, x.fee, x.stories ?? '', x.views ?? '', x.replies ?? '', ...INQ.map(([k]) => x.inq[k] ?? ''),
+      x.inqT ?? '', x.leads, x.complaints, x.status, x.notes]) };
+  const leadsS = { name:'العملاء المحتملين', head:['التاريخ','الوقت','الجوال','استفسر عن','ملاحظة','تحوّل لطلب'],
+    rows: leads.slice().reverse().map(l => [fmtDate(l.created_at), fmtTime(l.created_at), l.phone, l.interest||'', l.note||'', l.converted||'']) };
+  const compS = { name:'الشكاوى', head:['التاريخ','الوقت','رقم الطلب','النوع','التفاصيل','الإجراء','المتسبب','الحالة','ساعات الحل'],
+    rows: complaints.slice().reverse().map(c => [fmtDate(c.received_at), fmtTime(c.received_at), c.order_code||'', c.ctype||'', c.details||'', c.action||'',
+      c.responsible||'', c.status||'', c.closed_at ? Math.max(0, Math.round((new Date(c.closed_at)-new Date(c.received_at))/3600000)) : '']) };
+  return [summary, daily, ordersSheet(live), leadsS, compS];
 }
 const monthRange = m => { const [y, mo] = m.split('-').map(Number); return [`${m}-01`, ymd(new Date(y, mo, 0))]; };
 // ملف Excel حقيقي (xlsx) من اليمين لليسار. كان CSV، و Excel العربي يحطه كله في عمود واحد لأنه يتوقع فاصلة منقوطة.
@@ -1867,7 +1887,7 @@ async function downloadXlsx(name, sheets){
   try{
     toast('جاري تجهيز الملف…');
     const X = await loadXLSX(), wb = X.utils.book_new();
-    for (const { name:sn, head, rows } of await Promise.all(sheets)){
+    for (const { name:sn, head, rows } of (await Promise.all(sheets)).flat()){
       const ws = X.utils.aoa_to_sheet([head, ...rows]);
       const all = [head, ...rows], n = Math.max(...all.map(r => r.length));
       ws['!cols'] = Array.from({ length:n }, (_,i) => ({ wch: Math.min(45, Math.max(...all.map(r => String(r[i] ?? '').length)) + 2) }));
@@ -1923,12 +1943,26 @@ async function loadDayReport(){
     </tbody>${list.length?`<tfoot><tr><td colspan="6" data-label=""><b>الإجمالي (${list.length} طلب)</b></td><td class="num" data-label="المبلغ"><b>${money(total)}</b></td><td colspan="5" data-label=""></td></tr></tfoot>`:''}</table></div></section>
     ${cancelled.length?`<p class="sub">ملغي في هذا اليوم: ${cancelled.map(o=>o.code).join('، ')} (غير محسوب في المبيعات)</p>`:''}`;
 }
+// جدول النشاط اليومي في التقرير الشهري: الستوري والمشاهدات والاستفسارات بنوعها والعملاء المحتملين لكل يوم
+function actTable(days){
+  const f = v => v===null ? '—' : Number(v).toLocaleString('en-US'), sum = g => days.reduce((s,x) => s + Number(g(x)||0), 0);
+  const st = x => x.status==='مسجّل' ? '' : x.status==='ما فيه نشاط' ? `<span class="tag" title="${esc(x.notes)}">ما فيه نشاط${x.notes ? ': '+esc(x.notes) : ''}</span>` : x.status==='لم يُسجل' ? '<span class="tag warn">لم يُسجل</span>' : '';
+  const rows = days.map(x => `<tr class="${x.status==='لم يُسجل' ? 'late' : ''}"><td><b>${x.wd}</b> <span class="num muted">${x.d.slice(8)}/${x.d.slice(5,7)}</span></td>
+    <td class="num">${x.n||'—'}</td><td class="num">${f(x.stories)}</td><td class="num">${f(x.views)}</td><td class="num">${f(x.replies)}</td>
+    ${INQ.map(([k]) => `<td class="num">${f(x.inq[k])}</td>`).join('')}<td class="num"><b>${f(x.inqT)}</b></td><td class="num">${x.leads||'—'}</td><td>${st(x)}</td></tr>`).join('');
+  return `<section class="panel"><h3>النشاط اليومي</h3><div class="tablewrap"><table><thead><tr><th>اليوم</th><th>الطلبات</th><th>الستوري</th><th>المشاهدات</th><th>الردود</th>
+    ${INQ.map(([,l]) => `<th>استفسار ${l}</th>`).join('')}<th>الاستفسارات</th><th>عملاء محتملين</th><th></th></tr></thead><tbody>${rows}</tbody>
+    <tfoot><tr><td><b>الإجمالي</b></td><td class="num"><b>${sum(x=>x.n)}</b></td><td class="num"><b>${f(sum(x=>x.stories))}</b></td><td class="num"><b>${f(sum(x=>x.views))}</b></td><td class="num"><b>${f(sum(x=>x.replies))}</b></td>
+    ${INQ.map(([k]) => `<td class="num"><b>${f(sum(x=>x.inq[k]))}</b></td>`).join('')}<td class="num"><b>${f(sum(x=>x.inqT))}</b></td><td class="num"><b>${sum(x=>x.leads)}</b></td>
+    <td>${days.filter(x=>x.status==='لم يُسجل').length ? `<span class="tag warn">${days.filter(x=>x.status==='لم يُسجل').length} يوم ما انسجل</span>` : ''}</td></tr></tfoot></table></div></section>`;
+}
 async function loadMonthReport(){
   const m = $('rMonth').value; if (!m) return;
   const [y, mo] = m.split('-').map(Number);
   const from = `${m}-01`, to = ymd(new Date(y, mo, 0));
   $('rOut').innerHTML = '<div class="empty">جاري تجهيز التقرير…</div>';
   const all = await fetchPaid(from, to);
+  const { days:act } = await dailyData(from, to, all);
   const list = all.filter(o=>o.status!=='ملغي');
   RDATA = list;
   const days = {};
@@ -1944,11 +1978,12 @@ async function loadMonthReport(){
     ${sumCards(list)}
     <section class="panel"><h3>ملخص الأيام</h3><div class="tablewrap"><table><thead><tr><th>اليوم</th><th>الطلبات</th><th>المبيعات</th><th>تحويل بنكي</th><th>تابي</th><th>تمارا</th><th>توصيل أبها</th><th>توصيل خميس مشيط</th><th>توصيل أخرى</th><th>استلام</th></tr></thead><tbody>${rows}</tbody>
     <tfoot><tr><td><b>الإجمالي</b></td><td class="num"><b>${list.length}</b></td><td class="num"><b>${money(s(list))}</b></td>${PAYS.map(p=>`<td class="num"><b>${cell(list,'payment',p)}</b></td>`).join('')}${REGS.map(g=>`<td class="num"><b>${list.filter(o=>o.region===g && o.fulfillment!=='استلام').length}</b></td>`).join('')}<td class="num"><b>${list.filter(o=>o.fulfillment==='استلام').length}</b></td></tr></tfoot></table></div></section>
+    ${actTable(act)}
     ${table('كل طلبات الشهر', ['الرقم','التاريخ','التسليم','الجوال','الوصف','المبلغ','الدفع','المنطقة','الحالة','التحقق'],
       list.sort((a,b)=>a.created_at<b.created_at?-1:1).map(o=>`<tr><td><b>${o.code}</b></td><td class="num">${o.paid_date}${late(o)}</td><td>${o.delivery_date}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(o.payment)}</td><td>${esc(regName(o))}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'تم':'بانتظار'}</td></tr>`))}`;
 }
-$('rDayCsv').onclick = () => exportCSV(RDATA, `تقرير-يومي-${$('rDay').value}.xlsx`, [dailySheet($('rDay').value, $('rDay').value)]);
-$('rMonthCsv').onclick = () => exportCSV(RDATA, `تقرير-شهري-${$('rMonth').value}.xlsx`, [dailySheet(...monthRange($('rMonth').value))]);
+$('rDayCsv').onclick = () => downloadXlsx(`تقرير-يومي-${$('rDay').value}.xlsx`, [reportSheets($('rDay').value, $('rDay').value, RDATA)]);
+$('rMonthCsv').onclick = () => downloadXlsx(`تقرير-شهري-${$('rMonth').value}.xlsx`, [reportSheets(...monthRange($('rMonth').value), RDATA)]);
 
 /* ================== الاعتماد وسجل التدقيق (الأدمن) ================== */
 const FIELD_AR = { phone:'الجوال', amount:'المبلغ', delivery_fee:'مبلغ التوصيل', description:'الوصف', payment:'الدفع', region:'المنطقة', region_other:'اسم المنطقة', delivery_date:'تاريخ التسليم', paid_date:'تاريخ التحويل', order_type:'النوع', source:'المصدر', status:'الحالة', txn_ref:'رقم العملية', receipt_path:'الإيصال', verified:'التحقق', fulfillment:'طريقة التسليم', approval:'الاعتماد', reject_reason:'سبب الرفض', responsible:'المتسبب', action:'الإجراء', notes:'ملاحظات', ctype:'نوع الشكوى', details:'التفاصيل', order_code:'رقم الطلب' };
