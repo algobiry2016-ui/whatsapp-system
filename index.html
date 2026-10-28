@@ -423,7 +423,7 @@ details.rep[open] summary{margin-bottom:12px}
       <div class="field hidden rangeF"><label for="oFrom">سُجّلت من</label><input type="date" id="oFrom"></div>
       <div class="field hidden rangeF"><label for="oTo">إلى</label><input type="date" id="oTo"></div>
       <div class="field"><label for="oSearch">بحث بالجوال أو الرقم</label><input id="oSearch" placeholder="05… أو WA-"></div>
-      <button class="btn ghost" id="oCsv">تنزيل Excel (CSV)</button>
+      <button class="btn ghost" id="oCsv">تنزيل Excel</button>
     </div>
     <div class="stats" id="oStats"></div>
     <div class="tablewrap"><table><thead><tr>
@@ -1347,13 +1347,7 @@ $('oRows').addEventListener('click', async e => {
   const d = e.target.dataset.delOrder;
   if (d && confirm('حذف الطلب نهائياً؟')){ const { error } = await sb.from('wa_orders').delete().eq('id', d); toast(error?'ما انحذف':'تم الحذف'); loadOrders(); }
 });
-$('oCsv').onclick = () => {
-  const head = ['الرقم','تاريخ التحويل','تاريخ التسجيل','وقت التسجيل','وقت الاستقبال','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','منها التوصيل','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق','الاعتماد'];
-  const rows = ORDERS.map(o => [o.code, o.paid_date, fmtDate(o.created_at), fmtTime(o.created_at), o.received_at ? fmtTime(o.received_at) : '', o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.delivery_fee ?? '', o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا', o.approval]);
-  const csv = '\ufeff' + [head, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
-  a.download = `طلبات-الواتس-${today()}.csv`; a.click();
-};
+$('oCsv').onclick = () => exportCSV(ORDERS, `طلبات-الواتس-${today()}.xlsx`);
 
 
 /* ================== تعديل الطلب (الأدمن) ================== */
@@ -1821,13 +1815,30 @@ async function loadReports(){
     ${table('أفضل ١٠ عملاء في الفترة', ['#','الجوال','الطلبات','الإجمالي','المتوسط'], topRows)}
     ${table('سجل الشكاوى', ['الاستلام','الطلب','النوع','التفاصيل','الإجراء','المتسبب','الحالة','مدة الحل'], compRows)}
     ${table('العملاء المحتملين', ['التاريخ','الجوال','استفسر عن','ملاحظة','النتيجة'], leadRows)}`;
-  $('rCsv').onclick = () => exportCSV(REP_ORDERS, `تقرير-الواتس-${from}-${to}.csv`);
+  $('rCsv').onclick = () => exportCSV(REP_ORDERS, `تقرير-الواتس-${from}-${to}.xlsx`);
 }
 function exportCSV(list, name){
   const head = ['الرقم','تاريخ التحويل','تاريخ التسجيل','وقت التسجيل','وقت الاستقبال','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','منها التوصيل','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق','الاعتماد'];
   const rows = list.map(o => [o.code, o.paid_date, fmtDate(o.created_at), fmtTime(o.created_at), o.received_at ? fmtTime(o.received_at) : '', o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.delivery_fee ?? '', o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا', o.approval]);
-  const csv = '\ufeff' + [head, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download = name; a.click();
+  downloadXlsx(name, head, rows);
+}
+// ملف Excel حقيقي (xlsx) من اليمين لليسار. كان CSV، و Excel العربي يحطه كله في عمود واحد لأنه يتوقع فاصلة منقوطة.
+// مكتبة SheetJS تنحمّل أول ما ينضغط التنزيل بس
+let XLSX_P = null;
+const loadXLSX = () => XLSX_P ||= new Promise((ok, no) => {
+  const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+  sc.onload = () => ok(window.XLSX); sc.onerror = () => { XLSX_P = null; no(new Error('ما قدرنا نجهّز ملف Excel، تأكد من النت')); };
+  document.head.appendChild(sc);
+});
+async function downloadXlsx(name, head, rows){
+  try{
+    const X = await loadXLSX();
+    const ws = X.utils.aoa_to_sheet([head, ...rows]);
+    ws['!cols'] = head.map((h,i) => ({ wch: Math.min(45, Math.max(String(h).length, ...rows.map(r => String(r[i] ?? '').length)) + 2) }));
+    const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, 'الطلبات');
+    wb.Workbook = { Views: [{ RTL: true }] };
+    X.writeFile(wb, name);
+  }catch(e){ toast(e.message || 'ما تنزّل الملف'); }
 }
 
 
@@ -1899,8 +1910,8 @@ async function loadMonthReport(){
     ${table('كل طلبات الشهر', ['الرقم','التاريخ','التسليم','الجوال','الوصف','المبلغ','الدفع','المنطقة','الحالة','التحقق'],
       list.sort((a,b)=>a.created_at<b.created_at?-1:1).map(o=>`<tr><td><b>${o.code}</b></td><td class="num">${o.paid_date}${late(o)}</td><td>${o.delivery_date}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(o.payment)}</td><td>${esc(regName(o))}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'تم':'بانتظار'}</td></tr>`))}`;
 }
-$('rDayCsv').onclick = () => exportCSV(RDATA, `تقرير-يومي-${$('rDay').value}.csv`);
-$('rMonthCsv').onclick = () => exportCSV(RDATA, `تقرير-شهري-${$('rMonth').value}.csv`);
+$('rDayCsv').onclick = () => exportCSV(RDATA, `تقرير-يومي-${$('rDay').value}.xlsx`);
+$('rMonthCsv').onclick = () => exportCSV(RDATA, `تقرير-شهري-${$('rMonth').value}.xlsx`);
 
 /* ================== الاعتماد وسجل التدقيق (الأدمن) ================== */
 const FIELD_AR = { phone:'الجوال', amount:'المبلغ', delivery_fee:'مبلغ التوصيل', description:'الوصف', payment:'الدفع', region:'المنطقة', region_other:'اسم المنطقة', delivery_date:'تاريخ التسليم', paid_date:'تاريخ التحويل', order_type:'النوع', source:'المصدر', status:'الحالة', txn_ref:'رقم العملية', receipt_path:'الإيصال', verified:'التحقق', fulfillment:'طريقة التسليم', approval:'الاعتماد', reject_reason:'سبب الرفض', responsible:'المتسبب', action:'الإجراء', notes:'ملاحظات', ctype:'نوع الشكوى', details:'التفاصيل', order_code:'رقم الطلب' };
