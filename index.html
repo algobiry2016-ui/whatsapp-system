@@ -1822,7 +1822,10 @@ async function loadReports(){
 function exportCSV(list, name, extra){
   const head = ['الرقم','تاريخ التحويل','تاريخ التسجيل','وقت التسجيل','وقت الاستقبال','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','منها التوصيل','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق','الاعتماد'];
   const rows = list.map(o => [o.code, o.paid_date, fmtDate(o.created_at), fmtTime(o.created_at), o.received_at ? fmtTime(o.received_at) : '', o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.delivery_fee ?? '', o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا', o.approval]);
-  downloadXlsx(name, [...(extra||[]), { name:'الطلبات', head, rows }]);
+  // التقارير: الملخص اليومي فوق، وتحته جدول الطلبات بعناوينه، في نفس الورقة
+  const sheet = !extra ? { name:'الطلبات', head, rows }
+    : Promise.all(extra).then(([d]) => ({ name:'التقرير', head:d.head, rows:[...d.rows, [], [], ['الطلبات'], head, ...rows] }));
+  downloadXlsx(name, [sheet]);
 }
 // الملخص اليومي: سطر لكل يوم بالطلبات والمبيعات والستوري والمشاهدات والاستفسارات بنوعها والعملاء المحتملين، وتحته الإجمالي
 async function dailySheet(from, to){
@@ -1866,7 +1869,8 @@ async function downloadXlsx(name, sheets){
     const X = await loadXLSX(), wb = X.utils.book_new();
     for (const { name:sn, head, rows } of await Promise.all(sheets)){
       const ws = X.utils.aoa_to_sheet([head, ...rows]);
-      ws['!cols'] = head.map((h,i) => ({ wch: Math.min(45, Math.max(String(h).length, ...rows.map(r => String(r[i] ?? '').length)) + 2) }));
+      const all = [head, ...rows], n = Math.max(...all.map(r => r.length));
+      ws['!cols'] = Array.from({ length:n }, (_,i) => ({ wch: Math.min(45, Math.max(...all.map(r => String(r[i] ?? '').length)) + 2) }));
       X.utils.book_append_sheet(wb, ws, sn);
     }
     wb.Workbook = { Views: [{ RTL: true }] };
