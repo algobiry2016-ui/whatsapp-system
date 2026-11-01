@@ -365,7 +365,12 @@ details.rep[open] summary{margin-bottom:12px}
 <div data-view="orders">
   <div class="stats hero" id="oHero"></div>
 
+  <!-- من 1 نوفمبر الطلب الجديد ينسجّل من "طلبات الواتس" بس (يوصل للمنسقين)، والفورم القديم مخفي (بطلب رؤوف). -->
   <section class="panel">
+    <p class="sub" style="margin:0">الطلب الجديد يتسجّل من <b>طلبات الواتس</b> عشان يوصل للمنسق والمندوب. هنا قائمة كل الطلبات للبحث والتعديل والتحقق.</p>
+    <div class="actions"><button class="btn" type="button" onclick="showTab('link')">طلب واتس جديد</button></div>
+  </section>
+  <section class="panel hidden" id="oNewOld">
     <h2>طلب جديد</h2>
     <p class="sub">رقم الطلب يطلع تلقائي بعد الحفظ.</p>
     <div class="grid">
@@ -1021,7 +1026,7 @@ async function boot(){
   $('whoName').textContent = `${data.name} · ${isAdmin() ? 'أدمن' : 'موظفة'}`;
   document.querySelectorAll('.adm').forEach(el => el.classList.toggle('hidden', !isAdmin()));
   $('loginView').classList.add('hidden'); $('appView').classList.remove('hidden');
-  initDates(); const h = location.hash.slice(1); showTab(loaders[h] && h!=='approvals' ? h : 'orders');
+  initDates(); const h = location.hash.slice(1); showTab(loaders[h] && h!=='approvals' ? h : 'link');
   pushInit();
 }
 function showLogin(err){ $('appView').classList.add('hidden'); $('loginView').classList.remove('hidden'); if(err) $('lMsg').textContent = err; }
