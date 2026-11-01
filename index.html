@@ -274,6 +274,10 @@ h2{letter-spacing:-.2px}
 .st-prep{background:var(--gold-s)!important;color:#8A6B3A!important} .st-ready{background:var(--slate-s)!important;color:var(--slate)!important}
 .st-done{background:var(--sage-s)!important;color:var(--sage)!important} .st-cancel{background:var(--alert-s)!important;color:var(--alert)!important}
 .stp{display:inline-block;border-radius:12px;padding:1px 10px;font-size:.8rem;font-weight:700}
+/* حالة الطلب في "طلباتي المرسلة": لون لكل مرحلة */
+.ost{display:inline-block;border-radius:12px;padding:2px 10px;font-size:.8rem;font-weight:700;white-space:nowrap}
+.ost-new{background:#F0F0EE;color:#55534f} .ost-florist{background:#FFF1D6;color:#9A6400} .ost-ready{background:#E3F0FF;color:#1E5FB4}
+.ost-rep{background:#EEE6FB;color:#5B36A8} .ost-done{background:#DFF3E6;color:#1E7A45} .ost-cancel{background:#FDE4E4;color:#B42318}
 .chart .col i{background:linear-gradient(180deg,var(--gold),#1C1C1C)}
 tr.late td{background:#FBF4F4}
 .hint{display:block;font-size:.78rem;color:var(--muted);margin-top:4px} .hint.warn{color:var(--alert)}
@@ -900,16 +904,29 @@ async function loadLink(){
     const keep = $('nFlorist').value;
     $('nFlorist').innerHTML = '<option value="">— اختاري المنسق —</option>' + florists.map(f => `<option value="${f.id}">${esc(f.full_name)}</option>`).join('');
     $('nFlorist').value = keep;
+    nRenderSent(orders, florists);
+  }catch(e){ $('nRows').innerHTML = `<tr><td colspan="6" class="empty">ما قدرت أجيب الطلبات: ${esc(e.message)}</td></tr>`; }
+}
+const OST = { scheduled:'new', new:'new', with_florist:'florist', ready:'ready', awaiting_pickup:'ready', with_rep:'rep', with_barq:'rep', out_for_delivery:'rep', delivered:'done', canceled:'cancel' };
+function nRenderSent(orders, florists){
     const opts = sel => florists.map(f => `<option value="${f.id}" ${f.id===sel?'selected':''}>${esc(f.full_name)}</option>`).join('');
     $('nRows').innerHTML = orders.length ? orders.map(o => `<tr>
       <td><b>${esc(o.code)}</b></td>
       <td>${o.date ? dayLabel(o.date) : '—'}${o.slot ? `<br><small>${esc(o.slot)}</small>` : ''}</td>
       <td>${esc(o.area||'—')}</td>
-      <td><span class="tag ${['delivered'].includes(o.status)?'':o.status==='canceled'?'warn':'blue'}">${esc(o.status_ar)}</span></td>
+      <td><span class="ost ost-${OST[o.status]||'new'}">${esc(o.status_ar)}</span></td>
       <td>${o.can_assign ? `<select data-assign="${o.wa_id}" data-was="${o.florist_id||''}"><option value="">${o.florist ? '' : '— اختاري —'}</option>${opts(o.florist_id)}</select>` : esc(o.florist||'—')}</td>
       <td>${esc(o.rep||'—')}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">ما فيه طلبات مرسلة</td></tr>';
-  }catch(e){ $('nRows').innerHTML = `<tr><td colspan="6" class="empty">ما قدرت أجيب الطلبات: ${esc(e.message)}</td></tr>`; }
 }
+// الحالة تتحدث لحالها كل 20 ثانية وأول ما ترجع للصفحة، بدون ما تحدّث (طلب رؤوف). القائمة بس، والفورم ما يتلمس،
+// ولا تتحدث وهي تختار منسق من القائمة.
+async function nRefreshSent(){
+  if (document.hidden || $('nRows').closest('[data-view]').classList.contains('hidden')) return;
+  if (document.activeElement?.closest?.('#nRows')) return;
+  try{ const { orders, florists } = await ordersApi('/api/wa/orders'); nRenderSent(orders, florists); }catch{}
+}
+setInterval(nRefreshSent, 20000);
+document.addEventListener('visibilitychange', nRefreshSent);
 $('nRows').onchange = async e => {
   const s = e.target.closest('select[data-assign]'); if (!s || !s.value) return;
   const name = s.selectedOptions[0].textContent, was = s.dataset.was;
