@@ -1228,7 +1228,9 @@ async function fetchPaid(from, to){
 let ORDERS = [], OVIEW = 'reg';
 async function loadOrders(){
   let q = sb.from('wa_orders').select('*');
-  if (OVIEW==='reg') q = q.eq('paid_date', today());
+  // "سُجّلت اليوم" = what was entered today, whatever its transfer date (a back-dated transfer
+  // hid the order and it was entered twice, 2026-11-01). The sales numbers stay on the transfer date.
+  if (OVIEW==='reg') q = q.gte('created_at', today()+'T00:00:00+03:00').lt('created_at', addDays(1)+'T00:00:00+03:00');
   if (OVIEW==='today') q = q.eq('delivery_date', today());
   if (OVIEW==='pending') q = q.in('status', OPEN_ST);
   if (OVIEW==='upcoming') q = q.gt('delivery_date', today());
