@@ -494,7 +494,7 @@ details.rep[open] summary{margin-bottom:12px}
   <section class="panel">
     <h2>طلباتي المرسلة</h2>
     <p class="sub">المفتوحة، وآخر 3 أيام. تقدرين تسندين أو تحوّلين المنسق قبل ما يجهز.</p>
-    <div class="tablewrap"><table><thead><tr><th>الرقم</th><th>التسليم</th><th>المنطقة</th><th>الحالة</th><th>المنسق</th><th>المندوب</th></tr></thead><tbody id="nRows"></tbody></table></div>
+    <div class="tablewrap"><table><thead><tr><th>الرقم</th><th>الجوال</th><th>التسليم</th><th>المنطقة</th><th>الحالة</th><th>المنسق</th><th>المندوب</th></tr></thead><tbody id="nRows"></tbody></table></div>
   </section>
 </div>
 
@@ -905,18 +905,21 @@ async function loadLink(){
     $('nFlorist').innerHTML = '<option value="">— اختاري المنسق —</option>' + florists.map(f => `<option value="${f.id}">${esc(f.full_name)}</option>`).join('');
     $('nFlorist').value = keep;
     nRenderSent(orders, florists);
-  }catch(e){ $('nRows').innerHTML = `<tr><td colspan="6" class="empty">ما قدرت أجيب الطلبات: ${esc(e.message)}</td></tr>`; }
+  }catch(e){ $('nRows').innerHTML = `<tr><td colspan="7" class="empty">ما قدرت أجيب الطلبات: ${esc(e.message)}</td></tr>`; }
 }
 const OST = { scheduled:'new', new:'new', with_florist:'florist', ready:'ready', awaiting_pickup:'ready', with_rep:'rep', with_barq:'rep', out_for_delivery:'rep', delivered:'done', canceled:'cancel' };
 function nRenderSent(orders, florists){
     const opts = sel => florists.map(f => `<option value="${f.id}" ${f.id===sel?'selected':''}>${esc(f.full_name)}</option>`).join('');
-    $('nRows').innerHTML = orders.length ? orders.map(o => `<tr>
+    // Same customer, same day, twice (not canceled): maybe entered twice by mistake.
+    const twice = k => orders.filter(x => x.status !== 'canceled' && x.phone && `${x.phone}|${x.date}` === k).length > 1;
+    $('nRows').innerHTML = orders.length ? orders.map(o => `<tr${o.status!=='canceled' && twice(`${o.phone}|${o.date}`) ? ' class="late"' : ''}>
       <td><b>${esc(o.code)}</b></td>
+      <td dir="ltr" style="white-space:nowrap">${esc(o.phone||'—')}${o.status!=='canceled' && twice(`${o.phone}|${o.date}`) ? '<br><span class="ost ost-cancel">⚠️ مكرر؟</span>' : ''}</td>
       <td>${o.date ? dayLabel(o.date) : '—'}${o.slot ? `<br><small>${esc(o.slot)}</small>` : ''}</td>
       <td>${esc(o.area||'—')}</td>
       <td><span class="ost ost-${OST[o.status]||'new'}">${esc(o.status_ar)}</span></td>
       <td>${o.can_assign ? `<select data-assign="${o.wa_id}" data-was="${o.florist_id||''}"><option value="">${o.florist ? '' : '— اختاري —'}</option>${opts(o.florist_id)}</select>` : esc(o.florist||'—')}</td>
-      <td>${esc(o.rep||'—')}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">ما فيه طلبات مرسلة</td></tr>';
+      <td>${esc(o.rep||'—')}</td></tr>`).join('') : '<tr><td colspan="7" class="empty">ما فيه طلبات مرسلة</td></tr>';
 }
 // الحالة تتحدث لحالها كل 20 ثانية وأول ما ترجع للصفحة، بدون ما تحدّث (طلب رؤوف). القائمة بس، والفورم ما يتلمس،
 // ولا تتحدث وهي تختار منسق من القائمة.
