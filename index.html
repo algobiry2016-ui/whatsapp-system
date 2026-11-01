@@ -478,7 +478,7 @@ details.rep[open] summary{margin-bottom:12px}
           <input type="radio" name="npay" id="np5" value="شبكة"><label for="np5">شبكة</label>
         </div>
       </div>
-      <div class="field hidden" id="nReceiptWrap"><label for="nReceipt">صورة التحويل</label><input id="nReceipt" type="file" accept="image/*,application/pdf"></div>
+      <div class="field hidden" id="nReceiptWrap"><label for="nReceipt" id="nReceiptLbl">صورة التحويل</label><input id="nReceipt" type="file" accept="image/*,application/pdf"></div>
       <div class="field hidden" id="nTxnWrap"><label for="nTxn">رقم العملية <span class="opt">(اختياري)</span></label><input id="nTxn"></div>
       <div class="field"><label for="nPaid">تاريخ التحويل</label><input id="nPaid" type="date"><small class="hint" id="nPaidHint"></small></div>
     </div>
@@ -685,7 +685,7 @@ details.rep[open] summary{margin-bottom:12px}
     <div class="field"><label for="eType">نوع الطلب</label><select id="eType"><option>عادي</option><option>مناسبة / حفلة</option><option>مسكة عروس</option></select></div>
     <div class="field"><label for="eSource">العميل</label><select id="eSource"><option value="">—</option><option>عميل جديد</option><option>عميل سابق</option><option>توصية</option><option>ستوري</option><option>إعلان</option></select></div>
     <div class="field"><label for="eStatus">الحالة</label><select id="eStatus"><option>قيد التجهيز</option><option>تم التجهيز</option><option>تم التوصيل</option><option>تم الاستلام</option><option>ملغي</option></select></div>
-    <div class="field"><label for="eReceipt">استبدال صورة التحويل <span class="opt">(اختياري)</span></label><input id="eReceipt" type="file" accept="image/*,application/pdf"></div>
+    <div class="field"><label for="eReceipt">استبدال صورة التحويل / الإيصال <span class="opt">(اختياري)</span></label><input id="eReceipt" type="file" accept="image/*,application/pdf"></div>
   </div>
   <div class="actions"><button class="btn" id="eSave">حفظ التعديل</button><button class="btn ghost" id="eCancel">إلغاء</button><span class="msg" id="eMsg"></span></div>
 </dialog>
@@ -848,8 +848,10 @@ $('nRec').onclick = async () => {
 
 document.querySelectorAll('input[name="npay"]').forEach(r => r.onchange = () => {
   const v = radioVal('npay');
-  $('nReceiptWrap').classList.toggle('hidden', v!=='تحويل بنكي');
-  $('nTxnWrap').classList.toggle('hidden', v==='تحويل بنكي' || v==='كاش' || !v);
+  // صورة الإثبات: للتحويل البنكي وإيصال الشبكة. ورقم العملية لتابي وتمارا بس. والكاش ما يحتاج شي
+  $('nReceiptWrap').classList.toggle('hidden', !RECEIPT_PAY.includes(v));
+  $('nReceiptLbl').textContent = v==='شبكة' ? 'صورة إيصال الشبكة' : 'صورة التحويل';
+  $('nTxnWrap').classList.toggle('hidden', !TXN_PAY.includes(v));
 });
 function nFulSync(){
   const pick = radioVal('nful')==='استلام';
@@ -1017,13 +1019,13 @@ $('nSave').onclick = async () => {
   $('nSave').disabled = true;
   try{
     // 1) هنا مثل العادة
-    const receipt_path = payment==='تحويل بنكي' ? await upload($('nReceipt').files[0], 'receipts') : null;
+    const receipt_path = RECEIPT_PAY.includes(payment) ? await upload($('nReceipt').files[0], 'receipts') : null;
     if (N_KNOWN === null) await nCustomer();
     const addons = $('nAddons').value.trim();
     const row = { phone, amount: amount + (fee || 0), description: addons ? `${desc} + ${addons}` : desc, payment, region, delivery_date, paid_date,
       region_other: !pick && region==='أخرى' ? area : null,
       fulfillment: ful, order_type:'عادي', source: N_KNOWN === null ? null : (N_KNOWN ? 'عميل سابق' : 'عميل جديد'), status:'قيد التجهيز',
-      txn_ref: !['تحويل بنكي','كاش'].includes(payment) ? ($('nTxn').value.trim()||null) : null, receipt_path };
+      txn_ref: TXN_PAY.includes(payment) ? ($('nTxn').value.trim()||null) : null, receipt_path };
     // وقت الاستقبال: وقت التسجيل نفسه
     if (HAS_RECV) row.received_at = new Date().toISOString();
     if (HAS_FEE) row.delivery_fee = fee || 0;
@@ -1719,6 +1721,8 @@ $('rPeriod').onchange = () => { setPeriod($('rPeriod').value); loadReports(); };
 
 const PALETTE = ['#1C1C1C','#B08D57','#7D8B77','#8C6F62','#5E7288','#A9A39A','#C8B08A','#4A4A48'];
 // كلاس لون كل وسيلة دفع (كاش وشبكة انضافوا 2026-11-01)
+// الكاش والشبكة: العميل يحاسب في المحل (المندوب ما يستلم فلوس أبد)
+const RECEIPT_PAY = ['تحويل بنكي','شبكة'], TXN_PAY = ['تابي','تمارا'];
 const PAYC = { 'تمارا':'tm', 'تابي':'tb', 'تحويل بنكي':'bk', 'كاش':'ch', 'شبكة':'cd' };
 const PAY_COLOR = { 'تحويل بنكي':'#1C1C1C', 'تابي':'#7D8B77', 'تمارا':'#B08D57', 'كاش':'#5E7A8A', 'شبكة':'#A4474F' };
 const pct = (a,b) => b ? Math.round((a-b)/b*100) : null;
