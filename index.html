@@ -2021,6 +2021,50 @@ function actTable(days){
     ${INQ.map(([k]) => `<td class="num"><b>${f(sum(x=>x.inq[k]))}</b></td>`).join('')}<td class="num"><b>${f(sum(x=>x.inqT))}</b></td><td class="num"><b>${sum(x=>x.leads)}</b></td>
     <td>${days.filter(x=>x.status==='لم يُسجل').length ? `<span class="tag warn">${days.filter(x=>x.status==='لم يُسجل').length} يوم ما انسجل</span>` : ''}</td></tr></tfoot></table></div></section>`;
 }
+// مبلغ التوصيل للطلب: المسجّل (من 1 نوفمبر)، وإلا تقدير من سعر منطقته (الطلبات قبل نوفمبر كانت مبلغ واحد شامل التوصيل)
+const normA = t => String(t||'').replace(/[ةه]/g,'ه').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/[\s\-ـ]/g,'');
+const FEE_ALIAS = [['خميس',25],['ابها',25],['تندح',25],['رفيد',25],['فرعاء',50],['قرعاء',50],['فرعين',50],['فرعيين',50],['وادين',50],['واديين',50],['هشبل',50],['سريع',50],['مسقي',70],['طريب',150],['سراهعبيد',150]];
+function feeOf(o){
+  if (o.delivery_fee != null && o.delivery_fee !== '') return { v:Number(o.delivery_fee), est:false };
+  if (o.fulfillment === 'استلام') return { v:0, est:false };
+  const name = regName(o);
+  const digits = String(o.region_other||'').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).match(/\d+/);
+  if (o.region === 'أخرى' && digits) return { v:Number(digits[0]), est:true };
+  const k = normA(name);
+  if (!k || k === normA('أخرى')) return { v:0, est:true, unknown:name || 'بدون منطقة' };
+  const hit = N_AREAS.find(a => a.fee != null && (normA(a.name).includes(k) || k.includes(normA(a.name))));
+  if (hit) return { v:Number(hit.fee), est:true };
+  const al = FEE_ALIAS.find(([a]) => k.includes(a));
+  return al ? { v:al[1], est:true } : { v:0, est:true, unknown:name };
+}
+// الجدول الشهري (نفس جدول رؤوف): سطر لكل يوم بالطلبات والمبلغ والتوصيل والنشاط، وسطر الإجمالي
+function monthRows(act, list){
+  return act.map(x => {
+    const os = list.filter(o => o.paid_date === x.d), fs = os.map(feeOf);
+    const top = x.inqT ? topKey(Object.fromEntries(INQ.map(([k,l]) => [l, x.inq[k]]))) : '';
+    return { ...x, fee: fs.reduce((t,f) => t + f.v, 0), est: fs.some(f => f.est && f.v), unknown: fs.filter(f => f.unknown).map(f => f.unknown), top };
+  });
+}
+let MROWS = [];
+function monthTable(rows){
+  const f = v => v===null || v===undefined ? '' : Number(v).toLocaleString('en-US'), sum = g => rows.reduce((t,x) => t + Number(g(x)||0), 0);
+  const amt = sum(x=>x.amt), fee = sum(x=>x.fee), unk = rows.flatMap(x => x.unknown), est = rows.some(x => x.est);
+  const q = x => [x.top, x.status==='ما فيه نشاط' ? 'ما فيه نشاط' : '', x.notes].filter(Boolean).join(' · ');
+  const body = rows.map(x => `<tr class="${x.n ? '' : 'zero'}"><td><b>${x.wd}</b></td><td class="num">${x.d.replace(/-/g,'/')}</td><td class="num">${x.n||''}</td><td class="num"><b>${x.n ? f(x.amt) : ''}</b></td><td class="num">${x.n ? (x.est ? '≈ ' : '') + f(x.fee) : ''}</td>
+    <td class="num">${f(x.stories)}</td><td class="num">${f(x.views)}</td><td class="num">${x.replies ? f(x.replies) : ''}</td><td class="num">${x.leads||''}</td><td class="num">${x.inqT ? f(x.inqT) : ''}</td><td>${esc(q(x))}</td></tr>`).join('');
+  return `<section class="panel"><h3>الجدول الشهري</h3>
+    <p class="sub">المبلغ ${money(amt)} · منه التوصيل ${est ? '≈ ' : ''}${money(fee)} · <b>الطلبات بدون التوصيل ${est ? '≈ ' : ''}${money(amt - fee)}</b>${est ? '<br>≈ تقدير من سعر المنطقة للطلبات اللي ما انسجّل لها مبلغ توصيل (قبل 1 نوفمبر كان المبلغ واحد شامل التوصيل).' : ''}${unk.length ? `<br><span class="tag warn">منطقة بدون سعر: ${esc([...new Set(unk)].join('، '))} (توصيلها ما انحسب)</span>` : ''}</p>
+    <div class="tablewrap"><table><thead><tr><th>اليوم</th><th>التاريخ</th><th>عدد الطلبات</th><th>المبلغ</th><th>التوصيل</th><th>استوري</th><th>مشاهدات</th><th>ردود</th><th>عملاء محتملين</th><th>استفسارات</th><th>النوعية</th></tr></thead><tbody>${body}</tbody>
+    <tfoot><tr><td colspan="2"><b>الإجمالي</b></td><td class="num"><b>${sum(x=>x.n)}</b></td><td class="num"><b>${f(amt)}</b></td><td class="num"><b>${est ? '≈ ' : ''}${f(fee)}</b></td><td class="num"><b>${f(sum(x=>x.stories))}</b></td><td class="num"><b>${f(sum(x=>x.views))}</b></td><td class="num"><b>${f(sum(x=>x.replies))}</b></td><td class="num"><b>${sum(x=>x.leads)}</b></td><td class="num"><b>${f(sum(x=>x.inqT))}</b></td><td></td></tr></tfoot></table></div></section>`;
+}
+function monthSheet(rows){
+  const sum = g => rows.reduce((t,x) => t + Number(g(x)||0), 0), v = x => x ?? '';
+  const head = ['اليوم','التاريخ','عدد الطلبات','المبلغ','التوصيل','تقدير؟','استوري','مشاهدات','ردود','عملاء محتملين','استفسارات','النوعية'];
+  const body = rows.map(x => [x.wd, x.d.replace(/-/g,'/'), x.n, x.amt, x.fee, x.est ? 'تقدير' : '', v(x.stories), v(x.views), v(x.replies), x.leads, v(x.inqT), [x.top, x.notes].filter(Boolean).join(' · ')]);
+  body.push(['الإجمالي','', sum(x=>x.n), sum(x=>x.amt), sum(x=>x.fee), rows.some(x=>x.est) ? 'تقدير' : '', sum(x=>x.stories), sum(x=>x.views), sum(x=>x.replies), sum(x=>x.leads), sum(x=>x.inqT), '']);
+  body.push(['بدون التوصيل','','', sum(x=>x.amt) - sum(x=>x.fee)]);
+  return { name:'الجدول الشهري', head, rows: body };
+}
 async function loadMonthReport(){
   const m = $('rMonth').value; if (!m) return;
   const [y, mo] = m.split('-').map(Number);
@@ -2030,6 +2074,7 @@ async function loadMonthReport(){
   const { days:act } = await dailyData(from, to, all);
   const list = all.filter(o=>o.status!=='ملغي');
   RDATA = list;
+  MROWS = monthRows(act, list);
   const days = {};
   for (let d = new Date(from+'T00:00:00'); ymd(d) <= to; d.setDate(d.getDate()+1)) days[ymd(d)] = [];
   list.forEach(o => { const k = o.paid_date; if (days[k]) days[k].push(o); });
@@ -2040,6 +2085,7 @@ async function loadMonthReport(){
   const best = Object.keys(days).sort((a,b)=>s(days[b])-s(days[a]))[0];
   $('rOut').innerHTML = `
     <div class="rep-head"><div><h2>التقرير الشهري</h2><p class="sub">${m} · من ${from} إلى ${to}${list.length?` · أعلى يوم: ${WEEK[new Date(best+'T00:00:00').getDay()]} ${best.slice(8)} (${money(s(days[best]))})`:''}</p></div></div>
+    ${monthTable(MROWS)}
     ${sumCards(list)}
     <section class="panel"><h3>ملخص الأيام</h3><div class="tablewrap"><table><thead><tr><th>اليوم</th><th>الطلبات</th><th>المبيعات</th>${PAYS.map(p=>`<th>${p}</th>`).join('')}<th>توصيل أبها</th><th>توصيل خميس مشيط</th><th>توصيل أخرى</th><th>استلام</th></tr></thead><tbody>${rows}</tbody>
     <tfoot><tr><td><b>الإجمالي</b></td><td class="num"><b>${list.length}</b></td><td class="num"><b>${money(s(list))}</b></td>${PAYS.map(p=>`<td class="num"><b>${cell(list,'payment',p)}</b></td>`).join('')}${REGS.map(g=>`<td class="num"><b>${list.filter(o=>o.region===g && o.fulfillment!=='استلام').length}</b></td>`).join('')}<td class="num"><b>${list.filter(o=>o.fulfillment==='استلام').length}</b></td></tr></tfoot></table></div></section>
@@ -2048,7 +2094,7 @@ async function loadMonthReport(){
       list.sort((a,b)=>a.created_at<b.created_at?-1:1).map(o=>`<tr><td><b>${o.code}</b></td><td class="num">${o.paid_date}${late(o)}</td><td>${o.delivery_date}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(o.payment)}</td><td>${esc(regName(o))}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'تم':'بانتظار'}</td></tr>`))}`;
 }
 $('rDayCsv').onclick = () => downloadXlsx(`تقرير-يومي-${$('rDay').value}.xlsx`, [reportSheets($('rDay').value, $('rDay').value, RDATA)]);
-$('rMonthCsv').onclick = () => downloadXlsx(`تقرير-شهري-${$('rMonth').value}.xlsx`, [reportSheets(...monthRange($('rMonth').value), RDATA)]);
+$('rMonthCsv').onclick = () => downloadXlsx(`تقرير-شهري-${$('rMonth').value}.xlsx`, [[monthSheet(MROWS)], reportSheets(...monthRange($('rMonth').value), RDATA)]);
 
 /* ================== الاعتماد وسجل التدقيق (الأدمن) ================== */
 const FIELD_AR = { phone:'الجوال', amount:'المبلغ', delivery_fee:'مبلغ التوصيل', description:'الوصف', payment:'الدفع', region:'المنطقة', region_other:'اسم المنطقة', delivery_date:'تاريخ التسليم', paid_date:'تاريخ التحويل', order_type:'النوع', source:'المصدر', status:'الحالة', txn_ref:'رقم العملية', receipt_path:'الإيصال', verified:'التحقق', fulfillment:'طريقة التسليم', approval:'الاعتماد', reject_reason:'سبب الرفض', responsible:'المتسبب', action:'الإجراء', notes:'ملاحظات', ctype:'نوع الشكوى', details:'التفاصيل', order_code:'رقم الطلب' };
