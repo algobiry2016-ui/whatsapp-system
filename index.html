@@ -758,8 +758,10 @@ const fmt12 = iso => { if (!iso) return ''; const d = new Date(iso), h = d.getHo
 const rTag = o => o.received_at ? ` <span class="tag" title="وقت استقبال الطلب من العميل">استُقبل ${fmt12(o.received_at)}</span>` : '';
 const fmtDT = iso => `${fmtDate(iso)} ${fmtTime(iso)}`;
 const isAdmin = () => ME.role === 'admin';
-// المساعد (helper، مثل راشد): تبويب "طلبات الواتس" بس، يضيف طلب ويسنده للمنسق. القاعدة تقفل عليه الباقي (supabase/helper-role.sql)
+// المساعد (helper، مثل راشد): "طلبات الواتس" (يضيف طلب ويسنده للمنسق) و"طلبات الموقع" (مساعد خدمة عملاء: اطلاع وملاحظة خدمة العملاء).
+// القاعدة تقفل عليه الباقي (supabase/helper-role.sql)
 const isHelper = () => ME.role === 'helper';
+const HELPER_TABS = ['link', 'site'];
 // الجوال يتحول لإيميل الدخول: 05XXXXXXXX ← 9665XXXXXXXX@wa.dmflower1.com، والإيميل يبقى مثل ما هو
 const loginEmail = v => { const t = String(v||'').trim(); if (t.includes('@')) return t; const p = normPhone(t); return /^05\d{8}$/.test(p) ? `966${p.slice(1)}@wa.dmflower1.com` : t; };
 function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2200); }
@@ -1073,7 +1075,7 @@ async function boot(){
   document.querySelectorAll('.rtime').forEach(el => el.classList.toggle('hidden', !HAS_RECV));
   $('whoName').textContent = `${data.name} · ${isAdmin() ? 'أدمن' : isHelper() ? 'مساعد' : 'موظفة'}`;
   document.querySelectorAll('.adm').forEach(el => el.classList.toggle('hidden', !isAdmin()));
-  if (isHelper()) document.querySelectorAll('#tabs button[data-tab]').forEach(b => b.classList.toggle('hidden', b.dataset.tab !== 'link'));
+  if (isHelper()) document.querySelectorAll('#tabs button[data-tab]').forEach(b => b.classList.toggle('hidden', !HELPER_TABS.includes(b.dataset.tab)));
   $('loginView').classList.add('hidden'); $('appView').classList.remove('hidden');
   initDates(); const h = location.hash.slice(1); showTab(loaders[h] && h!=='approvals' ? h : 'link');
   pushInit();
@@ -1123,7 +1125,7 @@ window.addEventListener('message', async e => {
 /* ================== التبويبات ================== */
 const loaders = { orders:loadOrders, link:loadLink, site:loadSite, daily:loadDailyTab, leads:loadLeads, complaints:loadComplaints, customers:loadCustomers, reports:loadReportTab, approvals:loadApprovals };
 function showTab(t){
-  if (isHelper()) t = 'link';
+  if (isHelper() && !HELPER_TABS.includes(t)) t = 'link';
   document.querySelectorAll('#tabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab===t); if (b.dataset.tab===t) $('curTab').textContent = b.textContent; });
   closeMenu();
   document.querySelectorAll('[data-view]').forEach(v => v.classList.toggle('hidden', v.dataset.view!==t));
