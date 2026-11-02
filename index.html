@@ -1888,11 +1888,13 @@ const exportCSV = (list, name) => downloadXlsx(name, [ordersSheet(list)]);
 const INQ = [['inq_price','السعر'],['inq_avail','التوفر'],['inq_delivery','التوصيل'],['inq_occasion','المناسبات'],['inq_other','أخرى']];
 async function dailyData(from, to, orders){
   if (to > today()) to = today();
-  const [{ data:daily }, paid, leads, complaints] = await Promise.all([
+  const [{ data:daily }, paid, leads, complaints, sched] = await Promise.all([
     sb.from('wa_daily').select('*').gte('day', from).lte('day', to),
     orders ? Promise.resolve(orders) : fetchPaid(from, to),
-    leadsWithConversion(from, to), fetchComplaints(from, to)
+    leadsWithConversion(from, to), fetchComplaints(from, to), fetchOrders(from, to)
   ]);
+  // التسليمات على يوم التسليم، مثل جدول "التقرير اليومي" في الشاشة
+  const done = sched.filter(o => DONE_ST.includes(o.status));
   const byDay = {}; (daily||[]).forEach(r => byDay[r.day] = r);
   const live = paid.filter(o => o.status!=='ملغي');
   const days = [];
@@ -1900,7 +1902,7 @@ async function dailyData(from, to, orders){
     const r = byDay[d], off = !!(r && isOffDay(r)), act = !!r && !off, os = live.filter(o => o.paid_date===d);
     const v = k => act ? Number(r[k]||0) : null;
     days.push({ d, wd: WEEK[new Date(d+'T00:00:00').getDay()], n: os.length, amt: os.reduce((s,o)=>s+Number(o.amount),0),
-      fee: os.reduce((s,o)=>s+Number(o.delivery_fee||0),0), stories: v('stories'), views: v('views'), replies: v('replies'),
+      fee: os.reduce((s,o)=>s+Number(o.delivery_fee||0),0), del: done.filter(o => o.delivery_date===d).length, stories: v('stories'), views: v('views'), replies: v('replies'),
       inq: Object.fromEntries(INQ.map(([k]) => [k, v(k)])), inqT: act ? INQ.reduce((s,[k])=>s+Number(r[k]||0),0) : null,
       leads: leads.filter(l => fmtDate(l.created_at)===d).length, complaints: complaints.filter(c => fmtDate(c.received_at)===d).length,
       status: act ? 'مسجّل' : off ? 'ما فيه نشاط' : d < today() ? 'لم يُسجل' : 'لسّا', notes: r ? (r.notes||'') : '' });
@@ -1915,17 +1917,19 @@ async function reportSheets(from, to, orders){
   const conv = leads.filter(l => l.converted).length, solved = complaints.filter(c => c.status==='تم الحل').length;
   const summary = { name:'ملخص', head:['البند','القيمة'], rows:[
     ['من', from], ['إلى', days.length ? days[days.length-1].d : to], ['عدد الأيام', days.length],
-    ['عدد الطلبات', live.length], ['المبيعات', sales], ['منها التوصيل', fees], ['المبيعات بدون التوصيل', sales - fees],
+    ['عدد الطلبات', live.length], ['المبيعات', sales], ['التسليمات', sum(x=>x.del)], ['منها التوصيل', fees], ['المبيعات بدون التوصيل', sales - fees],
     ['متوسط الطلب', live.length ? Math.round(sales / live.length * 100) / 100 : 0],
     ['الستوري', sum(x=>x.stories)], ['المشاهدات', sum(x=>x.views)], ['الردود', sum(x=>x.replies)],
     ...INQ.map(([k,l]) => ['استفسارات ' + l, sum(x=>x.inq[k])]), ['مجموع الاستفسارات', sum(x=>x.inqT)],
     ['العملاء المحتملين', leads.length], ['تحوّلوا لطلب', conv], ['الشكاوى', complaints.length], ['شكاوى تم حلها', solved],
     ['أيام مسجّلة', cnt('مسجّل')], ['أيام بدون نشاط', cnt('ما فيه نشاط')], ['أيام ما انسجلت', cnt('لم يُسجل')]
   ]};
-  const daily = { name:'يومي', head:['التاريخ','اليوم','عدد الطلبات','المبيعات','منها التوصيل','الستوري','المشاهدات','الردود',
-      ...INQ.map(([,l]) => 'استفسارات ' + l), 'مجموع الاستفسارات','العملاء المحتملين','الشكاوى','الحالة','ملاحظات'],
-    rows: days.map(x => [x.d, x.wd, x.n, x.amt, x.fee, x.stories ?? '', x.views ?? '', x.replies ?? '', ...INQ.map(([k]) => x.inq[k] ?? ''),
-      x.inqT ?? '', x.leads, x.complaints, x.status, x.notes]) };
+  // نفس أعمدة جدول "التقرير اليومي" في الشاشة (متوسط الطلب والتسليمات وأكثر استفسار)، وزيادة الاستفسارات بنوعها
+  const topInq = x => x.inqT ? topKey(Object.fromEntries(INQ.map(([k,l]) => [l, x.inq[k]]))) : '';
+  const daily = { name:'يومي', head:['التاريخ','اليوم','عدد الطلبات','المبيعات','متوسط الطلب','منها التوصيل','تسليمات','الستوري','المشاهدات','الردود',
+      ...INQ.map(([,l]) => 'استفسارات ' + l), 'مجموع الاستفسارات','أكثر استفسار','العملاء المحتملين','الشكاوى','الحالة','ملاحظات'],
+    rows: days.map(x => [x.d, x.wd, x.n, x.amt, x.n ? Math.round(x.amt / x.n * 100) / 100 : '', x.fee, x.del, x.stories ?? '', x.views ?? '', x.replies ?? '', ...INQ.map(([k]) => x.inq[k] ?? ''),
+      x.inqT ?? '', topInq(x), x.leads, x.complaints, x.status, x.notes]) };
   const leadsS = { name:'العملاء المحتملين', head:['التاريخ','الوقت','الجوال','استفسر عن','ملاحظة','تحوّل لطلب'],
     rows: leads.slice().reverse().map(l => [fmtDate(l.created_at), fmtTime(l.created_at), l.phone, l.interest||'', l.note||'', l.converted||'']) };
   const compS = { name:'الشكاوى', head:['التاريخ','الوقت','رقم الطلب','النوع','التفاصيل','الإجراء','المتسبب','الحالة','ساعات الحل'],
