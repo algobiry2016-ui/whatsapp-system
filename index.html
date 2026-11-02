@@ -450,7 +450,7 @@ details.rep[open] summary{margin-bottom:12px}
     <h2>طلب واتس جديد</h2>
     <div class="grid">
       <div class="field"><label for="nPhone">جوال العميل</label><input id="nPhone" inputmode="tel" placeholder="05xxxxxxxx"><small class="hint" id="nPhoneHint"></small></div>
-      <div class="field"><label for="nRecipient">جوال المستلم <span class="opt">(لو غيره)</span></label><input id="nRecipient" inputmode="tel" placeholder="05xxxxxxxx"></div>
+      <div class="field"><label for="nRecipient">جوال المستلم <span class="opt">(للتوصيل إلزامي، ولو نفسه اكتبي رقم العميل)</span></label><input id="nRecipient" inputmode="tel" placeholder="05xxxxxxxx"></div>
       <div class="field wide"><label for="nDesc">وصف الطلب</label><input id="nDesc" placeholder="مثال: باقة ورد جوري"></div>
       <div class="field wide"><label for="nAddons">الإضافات <span class="opt">(اختياري)</span></label><input id="nAddons" placeholder="مثال: بالونات، شوكولاتة"></div>
       <div class="field wide"><label for="nCard">العبارة <span class="opt">(اختياري — الصقيها من الواتس)</span></label><textarea id="nCard" rows="2"></textarea></div>
@@ -1002,6 +1002,8 @@ $('nSave').onclick = async () => {
   const region = pick ? PICKUP_REGION : (area === 'أبها' || area === 'خميس مشيط' ? area : (area ? 'أخرى' : ''));
   const delivery_date = $('nDate').value, slot = $('nSlot').value;
   if (!phoneCheck(phone, 'nMsg')) return;
+  // جوال المستلم إلزامي للتوصيل (طلب رؤوف 2026-11-02): ما ينسخه البرنامج من رقم العميل
+  if (!pick && !recipient) return msg('nMsg', 'اكتبي جوال المستلم (لو نفسه اكتبي رقم العميل)');
   if (recipient && phoneBad(recipient)) return msg('nMsg', 'جوال المستلم: ' + phoneIssue(recipient));
   if (!desc) return msg('nMsg','اكتبي وصف الطلب');
   if (amount === null || amount <= 0) return msg('nMsg','اكتبي مبلغ الطلب');
