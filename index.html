@@ -2058,19 +2058,18 @@ function monthTable(rows){
   const f = v => v===null || v===undefined ? '' : Number(v).toLocaleString('en-US'), sum = g => rows.reduce((t,x) => t + Number(g(x)||0), 0);
   const amt = sum(x=>x.amt), fee = sum(x=>x.fee), unk = rows.flatMap(x => x.unknown), est = rows.some(x => x.est);
   const q = x => [x.top, x.status==='ما فيه نشاط' ? 'ما فيه نشاط' : '', x.notes].filter(Boolean).join(' · ');
-  const body = rows.map(x => `<tr class="${x.n ? '' : 'zero'}"><td><b>${x.wd}</b></td><td class="num">${x.d.replace(/-/g,'/')}</td><td class="num">${x.n||''}</td><td class="num"><b>${x.n ? f(x.amt) : ''}</b></td><td class="num">${x.n ? (x.est ? '≈ ' : '') + f(x.fee) : ''}</td>
+  const body = rows.map(x => `<tr class="${x.n ? '' : 'zero'}"><td><b>${x.wd}</b></td><td class="num">${x.d.replace(/-/g,'/')}</td><td class="num">${x.n||''}</td><td class="num"><b>${x.n ? (x.est ? '≈ ' : '') + f(x.amt - x.fee) : ''}</b></td><td class="num">${x.n ? (x.est ? '≈ ' : '') + f(x.fee) : ''}</td><td class="num">${x.n ? f(x.amt) : ''}</td>
     <td class="num">${f(x.stories)}</td><td class="num">${f(x.views)}</td><td class="num">${x.replies ? f(x.replies) : ''}</td><td class="num">${x.leads||''}</td><td class="num">${x.inqT ? f(x.inqT) : ''}</td><td>${esc(q(x))}</td></tr>`).join('');
   return `<section class="panel"><h3>الجدول الشهري</h3>
-    <p class="sub">المبلغ ${money(amt)} · منه التوصيل ${est ? '≈ ' : ''}${money(fee)} · <b>الطلبات بدون التوصيل ${est ? '≈ ' : ''}${money(amt - fee)}</b>${est ? '<br>≈ تقدير من سعر المنطقة للطلبات اللي ما انسجّل لها مبلغ توصيل (قبل 1 نوفمبر كان المبلغ واحد شامل التوصيل).' : ''}${unk.length ? `<br><span class="tag warn">منطقة بدون سعر: ${esc([...new Set(unk)].join('، '))} (توصيلها ما انحسب)</span>` : ''}</p>
-    <div class="tablewrap"><table><thead><tr><th>اليوم</th><th>التاريخ</th><th>عدد الطلبات</th><th>المبلغ</th><th>التوصيل</th><th>استوري</th><th>مشاهدات</th><th>ردود</th><th>عملاء محتملين</th><th>استفسارات</th><th>النوعية</th></tr></thead><tbody>${body}</tbody>
-    <tfoot><tr><td colspan="2"><b>الإجمالي</b></td><td class="num"><b>${sum(x=>x.n)}</b></td><td class="num"><b>${f(amt)}</b></td><td class="num"><b>${est ? '≈ ' : ''}${f(fee)}</b></td><td class="num"><b>${f(sum(x=>x.stories))}</b></td><td class="num"><b>${f(sum(x=>x.views))}</b></td><td class="num"><b>${f(sum(x=>x.replies))}</b></td><td class="num"><b>${sum(x=>x.leads)}</b></td><td class="num"><b>${f(sum(x=>x.inqT))}</b></td><td></td></tr></tfoot></table></div></section>`;
+    <p class="sub"><b>الطلبات بدون التوصيل ${est ? '≈ ' : ''}${money(amt - fee)}</b> + التوصيل ${est ? '≈ ' : ''}${money(fee)} = الإجمالي (اللي دفعه العملاء) ${money(amt)}${est ? '<br>≈ تقدير من سعر المنطقة للطلبات اللي ما انسجّل لها مبلغ توصيل (قبل 1 نوفمبر كان المبلغ واحد شامل التوصيل).' : ''}${unk.length ? `<br><span class="tag warn">منطقة بدون سعر: ${esc([...new Set(unk)].join('، '))} (توصيلها ما انحسب)</span>` : ''}</p>
+    <div class="tablewrap"><table><thead><tr><th>اليوم</th><th>التاريخ</th><th>عدد الطلبات</th><th>مبلغ الطلبات (بدون التوصيل)</th><th>التوصيل</th><th>الإجمالي (شامل التوصيل)</th><th>استوري</th><th>مشاهدات</th><th>ردود</th><th>عملاء محتملين</th><th>استفسارات</th><th>النوعية</th></tr></thead><tbody>${body}</tbody>
+    <tfoot><tr><td colspan="2"><b>الإجمالي</b></td><td class="num"><b>${sum(x=>x.n)}</b></td><td class="num"><b>${est ? '≈ ' : ''}${f(amt - fee)}</b></td><td class="num"><b>${est ? '≈ ' : ''}${f(fee)}</b></td><td class="num"><b>${f(amt)}</b></td><td class="num"><b>${f(sum(x=>x.stories))}</b></td><td class="num"><b>${f(sum(x=>x.views))}</b></td><td class="num"><b>${f(sum(x=>x.replies))}</b></td><td class="num"><b>${sum(x=>x.leads)}</b></td><td class="num"><b>${f(sum(x=>x.inqT))}</b></td><td></td></tr></tfoot></table></div></section>`;
 }
 function monthSheet(rows){
   const sum = g => rows.reduce((t,x) => t + Number(g(x)||0), 0), v = x => x ?? '';
-  const head = ['اليوم','التاريخ','عدد الطلبات','المبلغ','التوصيل','تقدير؟','استوري','مشاهدات','ردود','عملاء محتملين','استفسارات','النوعية'];
-  const body = rows.map(x => [x.wd, x.d.replace(/-/g,'/'), x.n, x.amt, x.fee, x.est ? 'تقدير' : '', v(x.stories), v(x.views), v(x.replies), x.leads, v(x.inqT), [x.top, x.notes].filter(Boolean).join(' · ')]);
-  body.push(['الإجمالي','', sum(x=>x.n), sum(x=>x.amt), sum(x=>x.fee), rows.some(x=>x.est) ? 'تقدير' : '', sum(x=>x.stories), sum(x=>x.views), sum(x=>x.replies), sum(x=>x.leads), sum(x=>x.inqT), '']);
-  body.push(['بدون التوصيل','','', sum(x=>x.amt) - sum(x=>x.fee)]);
+  const head = ['اليوم','التاريخ','عدد الطلبات','مبلغ الطلبات (بدون التوصيل)','التوصيل','الإجمالي (شامل التوصيل)','التوصيل تقدير؟','استوري','مشاهدات','ردود','عملاء محتملين','استفسارات','النوعية'];
+  const body = rows.map(x => [x.wd, x.d.replace(/-/g,'/'), x.n, x.amt - x.fee, x.fee, x.amt, x.est ? 'تقدير' : '', v(x.stories), v(x.views), v(x.replies), x.leads, v(x.inqT), [x.top, x.notes].filter(Boolean).join(' · ')]);
+  body.push(['الإجمالي','', sum(x=>x.n), sum(x=>x.amt) - sum(x=>x.fee), sum(x=>x.fee), sum(x=>x.amt), rows.some(x=>x.est) ? 'تقدير' : '', sum(x=>x.stories), sum(x=>x.views), sum(x=>x.replies), sum(x=>x.leads), sum(x=>x.inqT), '']);
   return { name:'الجدول الشهري', head, rows: body };
 }
 async function loadMonthReport(){
