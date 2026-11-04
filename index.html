@@ -670,7 +670,7 @@ details.rep[open] summary{margin-bottom:12px}
   <p class="sub" id="eMeta"></p>
   <div class="grid">
     <div class="field"><label for="ePhone">جوال العميل</label><input id="ePhone" inputmode="tel"></div>
-    <p class="msg err hidden" id="eLock" style="grid-column:1/-1">الطلب عند المنسق، فالوصف واليوم والتسليم والمنطقة مقفلة لأن تعديلها ما يوصله. أي تعديل فيها اكتبيه <b>ملاحظة خدمة عملاء</b> من تبويب طلبات الموقع. المبلغ والدفع يتعدلون عادي.</p>
+    <p class="msg err hidden" id="eLock" style="grid-column:1/-1">الطلب عند المنسق، فالوصف والتسليم والمنطقة مقفلة لأن تعديلها ما يوصله. أي تعديل فيها اكتبيه <b>ملاحظة خدمة عملاء</b> من تبويب طلبات الموقع. <b>تاريخ التسليم</b> يتعدّل من هنا ويوصل المنسق على طول (لين يطلع مع المندوب). المبلغ والدفع يتعدلون عادي.</p>
     <div class="field"><label for="eAmount">المبلغ (الإجمالي)</label><input id="eAmount" inputmode="decimal"></div>
     <div class="field hidden" id="eFeeWrap"><label for="eFee">منها التوصيل</label><input id="eFee" inputmode="decimal"></div>
     <div class="field wide"><label for="eDesc">وصف الطلب</label><input id="eDesc"></div>
@@ -1431,9 +1431,11 @@ function openEdit(id){
   $('eFul').value = o.fulfillment||'توصيل'; $('eReg').value = o.region; $('eRegOther').value = o.region_other||'';
   $('eDate').value = o.delivery_date; $('eRecv').value = o.received_at ? `${fmtDate(o.received_at)}T${fmtTime(o.received_at)}` : ''; $('eType').value = o.order_type; $('eSource').value = o.source||''; $('eStatus').value = o.status;
   $('eReceipt').value = ''; $('eMsg').textContent = '';
-  // الطلب عند المنسق: تعديل الوصف واليوم والتسليم والمنطقة ما يوصله، فنقفلها ويكتب ملاحظة خدمة عملاء بدالها
+  // الطلب عند المنسق: تعديل الوصف والتسليم والمنطقة ما يوصله، فنقفلها ويكتب ملاحظة خدمة عملاء بدالها.
+  // تاريخ التسليم يتعدّل ويوصل نظام الموقع على طول (قرار رؤوف 2026-11-04 بعد WA-0232).
   const lock = atFlorist(o);
-  ['eDesc','eDate','eFul','eReg','eRegOther'].forEach(id => $(id).disabled = lock);
+  ['eDesc','eFul','eReg','eRegOther'].forEach(id => $(id).disabled = lock);
+  $('eDate').disabled = false;
   $('eLock').classList.toggle('hidden', !lock);
   eSync(); $('editDlg').showModal();
 }
@@ -1458,6 +1460,11 @@ $('eSave').onclick = async () => {
       region_other: !pick && $('eReg').value==='أخرى' ? $('eRegOther').value.trim() : null,
       delivery_date:$('eDate').value, paid_date:$('ePaid').value, order_type:$('eType').value, source:$('eSource').value||null, status:st };
     if (HAS_FEE) upd.delivery_fee = eFee;
+    // الطلب عند نظام الموقع وتغيّر تاريخه: يتغيّر هناك أول (يرجع مجدول للمنسق لو تأخّر)، ولو رفض ما ينحفظ هنا.
+    if (atFlorist(EDIT) && $('eDate').value !== EDIT.delivery_date) {
+      await ordersApi('/api/wa/date', { method:'POST', body: JSON.stringify({ wa_id: EDIT.id, date: $('eDate').value }) });
+      siteRefresh();
+    }
     if (HAS_RECV) upd.received_at = $('eRecv').value ? new Date($('eRecv').value).toISOString() : null;
     const f = $('eReceipt').files[0];
     if (f) upd.receipt_path = await upload(f, 'receipts');
