@@ -1407,7 +1407,15 @@ $('oRows').addEventListener('click', async e => {
   if (e.target.dataset.file) openFile(e.target.dataset.file);
   if (e.target.dataset.editOrder) openEdit(e.target.dataset.editOrder);
   const d = e.target.dataset.delOrder;
-  if (d && confirm('حذف الطلب نهائياً؟')){ const { error } = await sb.from('wa_orders').delete().eq('id', d); toast(error?'ما انحذف':'تم الحذف'); loadOrders(); }
+  if (d && confirm('حذف الطلب نهائياً؟ (ينحذف من برنامج الطلبات كمان)')){
+    const { error } = await sb.from('wa_orders').delete().eq('id', d);
+    if (error) { toast('ما انحذف'); return; }
+    // ينحذف من برنامج الطلبات كمان (قرار رؤوف 2026-11-05 بعد WA-0226)، أو ينلغي لو عليه أجرة مندوب
+    let note = 'تم الحذف';
+    try { const r = await ordersApi('/api/wa/delete', { method:'POST', body: JSON.stringify({ wa_id: +d }) }); if (r.done === 'canceled') note = 'تم الحذف، وفي برنامج الطلبات انلغى (عليه أجرة مندوب)'; }
+    catch(e){ note = 'انحذف هنا، بس ما انحذف من برنامج الطلبات: ' + e.message; }
+    toast(note); loadOrders(); siteRefresh();
+  }
 });
 $('oCsv').onclick = () => exportCSV(ORDERS, `طلبات-الواتس-${today()}.xlsx`);
 
