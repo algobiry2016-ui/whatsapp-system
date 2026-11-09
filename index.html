@@ -478,7 +478,12 @@ details.rep[open] summary{margin-bottom:12px}
           <input type="radio" name="npay" id="np5" value="شبكة"><label for="np5">شبكة</label>
         </div>
       </div>
+      <!-- دفع مقسّم على طريقتين (2026-11-09): تحويل وشبكة وكاش بس -->
+      <div class="field wide hidden" id="nSplitWrap"><label class="vchk"><input type="checkbox" id="nSplit"> دفع مقسّم على طريقتين (مثل: جزء شبكة وجزء تحويل)</label></div>
+      <div class="field wide hidden" id="nPay2Wrap"><label>الطريقة الثانية</label><div class="chips" id="nPay2"></div></div>
+      <div class="field amount hidden" id="nAmt2Wrap"><label for="nAmt2">مبلغ الطريقة الثانية</label><input id="nAmt2" inputmode="decimal" placeholder="0"><small class="hint" id="nSplitHint"></small></div>
       <div class="field hidden" id="nReceiptWrap"><label for="nReceipt" id="nReceiptLbl">صورة التحويل</label><input id="nReceipt" type="file" accept="image/*,application/pdf"></div>
+      <div class="field hidden" id="nReceipt2Wrap"><label for="nReceipt2" id="nReceipt2Lbl">صورة إثبات الطريقة الثانية</label><input id="nReceipt2" type="file" accept="image/*,application/pdf"></div>
       <div class="field hidden" id="nTxnWrap"><label for="nTxn">رقم العملية <span class="opt">(اختياري)</span></label><input id="nTxn"></div>
       <div class="field"><label for="nPaid">تاريخ التحويل</label><input id="nPaid" type="date"><small class="hint" id="nPaidHint"></small></div>
     </div>
@@ -676,6 +681,8 @@ details.rep[open] summary{margin-bottom:12px}
     <div class="field wide"><label for="eDesc">وصف الطلب</label><input id="eDesc"></div>
     <div class="field"><label for="ePay">وسيلة الدفع</label><select id="ePay"><option>تحويل بنكي</option><option>تابي</option><option>تمارا</option><option>كاش</option><option>شبكة</option></select></div>
     <div class="field"><label for="eTxn">رقم العملية</label><input id="eTxn"></div>
+    <div class="field split2"><label for="ePay2">الطريقة الثانية <span class="opt">(دفع مقسّم)</span></label><select id="ePay2"><option value="">— بدون —</option><option>تحويل بنكي</option><option>شبكة</option><option>كاش</option></select></div>
+    <div class="field split2" id="eAmt2Wrap"><label for="eAmt2">مبلغ الطريقة الثانية</label><input id="eAmt2" inputmode="decimal"><small class="hint" id="eSplitHint"></small></div>
     <div class="field"><label for="eFul">طريقة التسليم</label><select id="eFul"><option>توصيل</option><option>استلام</option></select></div>
     <div class="field" id="eRegWrap"><label for="eReg">منطقة التوصيل</label><select id="eReg"><option>أبها</option><option>خميس مشيط</option><option>أخرى</option></select></div>
     <div class="field" id="eRegOtherWrap"><label for="eRegOther">اسم المنطقة</label><input id="eRegOther"></div>
@@ -686,6 +693,7 @@ details.rep[open] summary{margin-bottom:12px}
     <div class="field"><label for="eSource">العميل</label><select id="eSource"><option value="">—</option><option>عميل جديد</option><option>عميل سابق</option><option>توصية</option><option>ستوري</option><option>إعلان</option></select></div>
     <div class="field"><label for="eStatus">الحالة</label><select id="eStatus"><option>قيد التجهيز</option><option>تم التجهيز</option><option>تم التوصيل</option><option>تم الاستلام</option><option>ملغي</option></select></div>
     <div class="field"><label for="eReceipt">استبدال صورة التحويل / الإيصال <span class="opt">(اختياري)</span></label><input id="eReceipt" type="file" accept="image/*,application/pdf"></div>
+    <div class="field split2" id="eReceipt2Wrap"><label for="eReceipt2">صورة إثبات الطريقة الثانية <span class="opt">(اختياري)</span></label><input id="eReceipt2" type="file" accept="image/*,application/pdf"></div>
   </div>
   <div class="actions"><button class="btn" id="eSave">حفظ التعديل</button><button class="btn ghost" id="eCancel">إلغاء</button><span class="msg" id="eMsg"></span></div>
 </dialog>
@@ -706,7 +714,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_1Lcx6NE0zKb-xrvH1K4cYA_DeJCaJd7';   //
 const PICKUP_REGION = 'أبها';   // منطقة المحل — طلبات الاستلام تنحفظ عليها
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth:{ storageKey:'dm-whatsapp-auth' } });  // جلسة مستقلة عن نظام المشتريات
 const $ = id => document.getElementById(id);
-let ME = { email:'', name:'', role:'' }, HAS_RECV = false, HAS_FEE = false;
+let ME = { email:'', name:'', role:'' }, HAS_RECV = false, HAS_FEE = false, HAS_SPLIT = false;
 // فصل مبلغ الطلب عن التوصيل: يبدأ من أول نوفمبر (بطلب رؤوف عشان ما يتلخبط الشهر)، وبعد إضافة عمود delivery_fee.
 // amount يبقى الإجمالي المدفوع (الطلب + التوصيل)، فالتقارير والتحقق ما تتغير
 const FEE_FROM = '2026-11-01';
@@ -858,7 +866,23 @@ document.querySelectorAll('input[name="npay"]').forEach(r => r.onchange = () => 
   $('nReceiptWrap').classList.toggle('hidden', !RECEIPT_PAY.includes(v));
   $('nReceiptLbl').textContent = v==='شبكة' ? 'صورة إيصال الشبكة' : 'صورة التحويل';
   $('nTxnWrap').classList.toggle('hidden', !TXN_PAY.includes(v));
+  nSplitSync();
 });
+// الدفع المقسّم: الطريقة الثانية ومبلغها، والأولى = الإجمالي ناقص الثاني (ما ينكتب مجموع غلط)
+function nSplitSync(){
+  const p1 = radioVal('npay'), can = HAS_SPLIT && SPLIT_PAY.includes(p1);
+  if (!can) $('nSplit').checked = false;
+  $('nSplitWrap').classList.toggle('hidden', !can);
+  const on = $('nSplit').checked, keep = radioVal('npay2');
+  $('nPay2').innerHTML = SPLIT_PAY.filter(p => p !== p1).map((p,i) => `<input type="radio" name="npay2" id="np2_${i}" value="${p}"${p===keep?' checked':''}><label for="np2_${i}">${p}</label>`).join('');
+  const p2 = radioVal('npay2');
+  ['nPay2Wrap','nAmt2Wrap'].forEach(id => $(id).classList.toggle('hidden', !on));
+  $('nReceipt2Wrap').classList.toggle('hidden', !on || !RECEIPT_PAY.includes(p2));
+  $('nReceipt2Lbl').textContent = p2==='شبكة' ? 'صورة إيصال الشبكة (الطريقة الثانية)' : 'صورة التحويل (الطريقة الثانية)';
+  const total = (num($('nAmount').value)||0) + (radioVal('nful')==='استلام' ? 0 : (num($('nFee').value)||0)), a2 = num($('nAmt2').value);
+  $('nSplitHint').textContent = !on || !total || !a2 ? '' : a2 >= total ? 'لازم يكون أقل من الإجمالي' : `${p1} ${money(total-a2)} + ${p2||'…'} ${money(a2)} = ${money(total)}`;
+}
+$('nSplit').onchange = nSplitSync; $('nPay2').onchange = nSplitSync; $('nAmt2').addEventListener('input', nSplitSync);
 function nFulSync(){
   const pick = radioVal('nful')==='استلام';
   $('nRegionWrap').classList.toggle('hidden', pick);
@@ -872,6 +896,7 @@ function nFeeSync(){
   $('nFeeWrap').classList.toggle('hidden', pick);
   const a = num($('nAmount').value), f = pick ? 0 : num($('nFee').value);
   $('nTotalHint').textContent = a ? `الإجمالي: ${money(a + (f||0))}` : '';
+  nSplitSync();
 }
 // عميل جديد أو سابق: من طلباته المسجلة هنا برقمه
 let N_KNOWN = null;
@@ -931,7 +956,7 @@ let N_AMT = new Map();
 async function nAmounts(orders){
   const ids = (orders||[]).map(o => +o.wa_id).filter(Boolean);
   if (!ids.length) return;
-  const { data } = await sb.from('wa_orders').select('id,amount,payment').in('id', ids);
+  const { data } = await sb.from('wa_orders').select(HAS_SPLIT ? 'id,amount,payment,payment2,amount2' : 'id,amount,payment').in('id', ids);
   (data||[]).forEach(r => N_AMT.set(r.id, r));
 }
 const OST = { scheduled:'new', new:'new', with_florist:'florist', ready:'ready', awaiting_pickup:'ready', with_rep:'rep', with_barq:'rep', out_for_delivery:'rep', delivered:'done', canceled:'cancel' };
@@ -942,7 +967,7 @@ function nRenderSent(orders, florists){
     $('nRows').innerHTML = orders.length ? orders.map(o => `<tr${o.status!=='canceled' && twice(`${o.phone}|${o.date}`) ? ' class="late"' : ''}>
       <td><b>${esc(o.code)}</b></td>
       <td dir="ltr" style="white-space:nowrap">${esc(o.phone||'—')}${o.status!=='canceled' && twice(`${o.phone}|${o.date}`) ? '<br><span class="ost ost-cancel">⚠️ مكرر؟</span>' : ''}</td>
-      <td class="num">${N_AMT.get(+o.wa_id) ? `<b>${money(N_AMT.get(+o.wa_id).amount)}</b><br><span class="pay pay-${PAYC[N_AMT.get(+o.wa_id).payment]}">${esc(N_AMT.get(+o.wa_id).payment)}</span>` : '—'}</td>
+      <td class="num">${N_AMT.get(+o.wa_id) ? `<b>${money(N_AMT.get(+o.wa_id).amount)}</b><br>${payChips(N_AMT.get(+o.wa_id))}` : '—'}</td>
       <td>${o.date ? dayLabel(o.date) : '—'}${o.slot ? `<br><small>${esc(o.slot)}</small>` : ''}</td>
       <td>${esc(o.area||'—')}</td>
       <td><span class="ost ost-${OST[o.status]||'new'}">${esc(o.status_ar)}</span></td>
@@ -1016,6 +1041,9 @@ $('nSave').onclick = async () => {
   const fee = pick ? 0 : num($('nFee').value);
   if (!pick && (fee === null || fee < 0)) return msg('nMsg','اكتبي مبلغ التوصيل (ولو صفر)');
   if (!payment) return msg('nMsg','اختاري وسيلة الدفع');
+  const split = HAS_SPLIT && $('nSplit').checked && SPLIT_PAY.includes(payment), payment2 = split ? radioVal('npay2') : null, amount2 = split ? num($('nAmt2').value) : null;
+  if (split && !payment2) return msg('nMsg','اختاري الطريقة الثانية للدفع');
+  if (split && (amount2 === null || amount2 <= 0 || amount2 >= amount + (fee||0))) return msg('nMsg','مبلغ الطريقة الثانية لازم يكون أقل من الإجمالي');
   if (!pick && !radioVal('nreg')) return msg('nMsg','اختاري المنطقة');
   if (!pick && !area) return msg('nMsg','اكتبي اسم المنطقة الجديدة');
   if (!delivery_date || delivery_date < today()) return msg('nMsg','اختاري تاريخ التسليم (اليوم أو بعده)');
@@ -1037,6 +1065,7 @@ $('nSave').onclick = async () => {
     // وقت الاستقبال: وقت التسجيل نفسه
     if (HAS_RECV) row.received_at = new Date().toISOString();
     if (HAS_FEE) row.delivery_fee = fee || 0;
+    if (split) Object.assign(row, { payment2, amount2, receipt_path2: RECEIPT_PAY.includes(payment2) ? await upload($('nReceipt2').files[0], 'receipts') : null });
     const { data, error } = await sb.from('wa_orders').insert(row).select('id,code,approval').single();
     if (error) throw error;
     // 2) للمنسقين
@@ -1049,12 +1078,13 @@ $('nSave').onclick = async () => {
     const note = N_PENDING ? `انحفظ ${data.code} هنا، بس ما وصل للمنسق — اضغطي إعادة الإرسال` : `تم ${data.code} ووصل للمنسق${data.approval==='بانتظار الاعتماد' ? ' (التحويل بانتظار اعتماد الأدمن)' : ''}`;
     toast(note); msg('nMsg', note, !N_PENDING); nPendingShow();
     // فورم فاضي للطلب الجاي
-    ['nPhone','nRecipient','nAmount','nFee','nDesc','nAddons','nCard','nRegionOther','nTxn','nReceipt'].forEach(id => $(id).value='');
+    ['nPhone','nRecipient','nAmount','nFee','nDesc','nAddons','nCard','nRegionOther','nTxn','nReceipt','nAmt2','nReceipt2'].forEach(id => $(id).value='');
+    $('nSplit').checked = false;
     document.querySelectorAll('input[name="npay"],input[name="nreg"]').forEach(r => r.checked=false);
     $('nf1').checked = true; $('nSlot').value = ''; $('nFlorist').value=''; $('nPhoneHint').textContent=''; N_KNOWN = null;
     $('nDate').value = today(); $('nPaid').value = today(); $('nPaidHint').textContent='';
     ['nReceiptWrap','nTxnWrap'].forEach(id => $(id).classList.add('hidden'));
-    N_PHOTOS = []; N_VOICES = []; nRenderPhotos(); nRenderVoices(); nFulSync();
+    N_PHOTOS = []; N_VOICES = []; nRenderPhotos(); nRenderVoices(); nFulSync(); nSplitSync();
     loadLink();
   }catch(e){ msg('nMsg','ما انحفظ الطلب: '+(e.message||e)); }
   $('nSave').disabled = false;
@@ -1071,6 +1101,9 @@ async function boot(){
   // عمود وقت الاستقبال: نخفي الخانة لين ينضاف في القاعدة، عشان ما يتعطل الحفظ
   HAS_RECV = !(await sb.from('wa_orders').select('received_at').limit(1)).error;
   HAS_FEE = !(await sb.from('wa_orders').select('delivery_fee').limit(1)).error;
+  // الدفع المقسّم يطلع بعد ما تنضاف أعمدته (supabase/split-payment.sql)
+  HAS_SPLIT = !(await sb.from('wa_orders').select('payment2').limit(1)).error;
+  document.querySelectorAll('.split2').forEach(el => el.classList.toggle('hidden', !HAS_SPLIT)); nSplitSync();
   $('eFeeWrap').classList.toggle('hidden', !HAS_FEE); feeSync();
   document.querySelectorAll('.rtime').forEach(el => el.classList.toggle('hidden', !HAS_RECV));
   $('whoName').textContent = `${data.name} · ${isAdmin() ? 'أدمن' : isHelper() ? 'مساعد' : 'موظفة'}`;
@@ -1374,11 +1407,11 @@ function renderOrders(){
     <td class="num"><a class="link" href="https://wa.me/966${esc(o.phone.replace(/^0/,''))}" target="_blank" rel="noopener">${esc(o.phone)}</a>${phoneTag(o.phone)}</td>
     <td class="desc">${esc(o.description)}${o.source?` <span class="tag rose">${esc(o.source)}</span>`:''}</td>
     <td class="num"><b>${money(o.amount)}</b>${Number(o.delivery_fee) ? `<br><span class="muted" style="font-size:.78rem">منها توصيل ${money(o.delivery_fee)}</span>` : ''}</td>
-    <td><span class="pay pay-${PAYC[o.payment]}">${esc(o.payment)}</span></td>
+    <td>${payChips(o)}</td>
     <td>${o.fulfillment==='استلام' ? '<span class="muted">من المحل</span>' : esc(o.region==='أخرى' ? (o.region_other||'أخرى') : o.region)}</td>
     <td><select class="stsel ${ST_CLASS[o.status]||''}" data-status="${o.id}">${Object.keys(ST_CLASS).filter(s=>s===o.status || s!==(o.fulfillment==='استلام'?'تم التوصيل':'تم الاستلام')).map(s=>`<option ${s===o.status?'selected':''}>${s}</option>`).join('')}</select></td>
     <td>${SITE.get(+o.id) ? `${esc(SITE.get(+o.id).florist||'—')}<br><small class="muted">${esc(SITE.get(+o.id).rep||'')}</small>` : ''}</td>
-    <td>${o.receipt_path ? `<a class="link" data-file="${esc(o.receipt_path)}">الإيصال</a>` : (o.txn_ref ? esc(o.txn_ref) : o.payment==='كاش' ? '<span class="muted">كاش</span>' : '<span class="tag warn">لا يوجد</span>')}</td>
+    <td>${o.receipt_path ? `<a class="link" data-file="${esc(o.receipt_path)}">الإيصال</a>` : (o.txn_ref ? esc(o.txn_ref) : o.payment==='كاش' ? '<span class="muted">كاش</span>' : '<span class="tag warn">لا يوجد</span>')}${o.payment2 ? '<br>' + (o.receipt_path2 ? `<a class="link" data-file="${esc(o.receipt_path2)}">إيصال ${esc(o.payment2)}</a>` : o.payment2==='كاش' ? '<span class="muted">كاش</span>' : `<span class="tag warn">${esc(o.payment2)}: لا يوجد</span>`) : ''}</td>
     <td>${isAdmin() ? `<label class="vchk"><input type="checkbox" data-verify="${o.id}" ${o.verified?'checked':''}> ${o.verified?'تم':'تحقق'}</label>` : (o.verified?'<span class="tag">تم</span>':'<span class="tag warn">بانتظار</span>')}</td>
     <td><span class="rowbtns"><button class="btn ghost small" data-edit-order="${o.id}">تعديل</button><button class="btn ghost small" data-del-order="${o.id}">حذف</button></span></td>
   </tr>`).join('') : `<tr><td colspan="12" class="empty">${{reg:'ما انسجلت طلبات اليوم لين الحين.',today:'ما فيه طلبات للتسليم اليوم.',pending:'كل الطلبات تسلّمت 👌',upcoming:'ما فيه طلبات مجدولة للأيام الجاية.',range:'ما فيه طلبات في هذي الفترة.'}[OVIEW]}</td></tr>`;
@@ -1435,7 +1468,7 @@ function openEdit(id){
   $('eMeta').textContent = `سُجّل ${fmtDT(o.created_at)} بواسطة ${o.created_by||'—'} · ${o.approval}`;
   $('ePaid').value = o.paid_date; $('ePaid').max = today();
   $('ePhone').value = o.phone; $('eAmount').value = o.amount; $('eFee').value = o.delivery_fee ?? ''; $('eDesc').value = o.description;
-  $('ePay').value = o.payment; $('eTxn').value = o.txn_ref||'';
+  $('ePay').value = o.payment; $('eTxn').value = o.txn_ref||''; $('ePay2').value = o.payment2||''; $('eAmt2').value = o.amount2 ?? ''; $('eReceipt2').value = ''; eSplitSync();
   $('eFul').value = o.fulfillment||'توصيل'; $('eReg').value = o.region; $('eRegOther').value = o.region_other||'';
   $('eDate').value = o.delivery_date; $('eRecv').value = o.received_at ? `${fmtDate(o.received_at)}T${fmtTime(o.received_at)}` : ''; $('eType').value = o.order_type; $('eSource').value = o.source||''; $('eStatus').value = o.status;
   $('eReceipt').value = ''; $('eMsg').textContent = '';
@@ -1447,6 +1480,13 @@ function openEdit(id){
   $('eLock').classList.toggle('hidden', !lock);
   eSync(); $('editDlg').showModal();
 }
+function eSplitSync(){
+  const on = HAS_SPLIT && !!$('ePay2').value;
+  ['eAmt2Wrap','eReceipt2Wrap'].forEach(id => $(id).classList.toggle('hidden', !on));
+  const t = num($('eAmount').value), a2 = num($('eAmt2').value);
+  $('eSplitHint').textContent = on && t && a2 && a2 < t ? `${$('ePay').value} ${money(t-a2)} + ${$('ePay2').value} ${money(a2)}` : '';
+}
+['ePay','ePay2'].forEach(id => $(id).addEventListener('change', eSplitSync)); ['eAmount','eAmt2'].forEach(id => $(id).addEventListener('input', eSplitSync));
 $('eCancel').onclick = () => $('editDlg').close();
 $('eSave').onclick = async () => {
   const phone = normPhone($('ePhone').value), amount = num($('eAmount').value), desc = $('eDesc').value.trim();
@@ -1456,6 +1496,10 @@ $('eSave').onclick = async () => {
   if (amount === null || amount <= 0) return msg('eMsg','المبلغ غير صحيح');
   const eFee = $('eFee').value.trim() === '' ? null : num($('eFee').value);
   if (HAS_FEE && eFee !== null && (eFee < 0 || eFee > amount)) return msg('eMsg','مبلغ التوصيل لازم يكون أقل من الإجمالي');
+  const p2 = HAS_SPLIT ? $('ePay2').value : '', a2 = p2 ? num($('eAmt2').value) : null;
+  if (p2 && !SPLIT_PAY.includes($('ePay').value)) return msg('eMsg','الدفع المقسّم بين التحويل والشبكة والكاش بس');
+  if (p2 && p2 === $('ePay').value) return msg('eMsg','الطريقة الثانية لازم تختلف عن الأولى');
+  if (p2 && (a2 === null || a2 <= 0 || a2 >= amount)) return msg('eMsg','مبلغ الطريقة الثانية لازم يكون أقل من الإجمالي');
   if (!pick && $('eReg').value==='أخرى' && !$('eRegOther').value.trim()) return msg('eMsg','اكتب اسم المنطقة');
   if (!$('eDate').value) return msg('eMsg','اختر تاريخ التسليم');
   let st = $('eStatus').value;
@@ -1476,6 +1520,11 @@ $('eSave').onclick = async () => {
     if (HAS_RECV) upd.received_at = $('eRecv').value ? new Date($('eRecv').value).toISOString() : null;
     const f = $('eReceipt').files[0];
     if (f) upd.receipt_path = await upload(f, 'receipts');
+    if (HAS_SPLIT) {
+      Object.assign(upd, { payment2: p2 || null, amount2: p2 ? a2 : null });
+      const f2 = $('eReceipt2').files[0];
+      if (!p2) upd.receipt_path2 = null; else if (f2) upd.receipt_path2 = await upload(f2, 'receipts');
+    }
     const { error } = await sb.from('wa_orders').update(upd).eq('id', EDIT.id);
     if (error) throw error;
     $('editDlg').close(); toast(`تم تعديل ${EDIT.code}`); loadOrders();
@@ -1749,6 +1798,14 @@ const PALETTE = ['#1C1C1C','#B08D57','#7D8B77','#8C6F62','#5E7288','#A9A39A','#C
 // الكاش والشبكة: العميل يحاسب في المحل (المندوب ما يستلم فلوس أبد)
 const RECEIPT_PAY = ['تحويل بنكي','شبكة'], TXN_PAY = ['تابي','تمارا'];
 const PAYC = { 'تمارا':'tm', 'تابي':'tb', 'تحويل بنكي':'bk', 'كاش':'ch', 'شبكة':'cd' };
+// الدفع المقسّم (2026-11-09): amount الإجمالي، و amount2 جزء الطريقة الثانية payment2 منه
+const SPLIT_PAY = ['تحويل بنكي','شبكة','كاش'];
+const payParts = o => o.payment2 && Number(o.amount2) > 0 ? [[o.payment, Number(o.amount) - Number(o.amount2)], [o.payment2, Number(o.amount2)]] : [[o.payment, Number(o.amount)]];
+const payAmt = (o, p) => payParts(o).reduce((t,[k,v]) => t + (k===p ? v : 0), 0);
+const hasPay = (o, p) => payParts(o).some(([k]) => k===p);
+const payText = o => o.payment2 ? payParts(o).map(([k,v]) => `${k} ${money(v)}`).join(' + ') : (o.payment||'');
+const payChips = o => payParts(o).map(([k,v]) => `<span class="pay pay-${PAYC[k]}">${esc(k)}${o.payment2 ? ' ' + money(v) : ''}</span>`).join(' ');
+const paySum = list => { const m = {}; list.forEach(o => payParts(o).forEach(([k,v]) => m[k] = (m[k]||0) + v)); return m; };
 const PAY_COLOR = { 'تحويل بنكي':'#1C1C1C', 'تابي':'#7D8B77', 'تمارا':'#B08D57', 'كاش':'#5E7A8A', 'شبكة':'#A4474F' };
 const pct = (a,b) => b ? Math.round((a-b)/b*100) : null;
 function delta(a,b){ const p = pct(a,b); if (p===null) return '<em class="dl">لا توجد مقارنة</em>'; return `<em class="dl ${p>=0?'up':'down'}">${p>=0?'▲':'▼'} <bdi dir="ltr">${Math.abs(p)}%</bdi> عن الفترة السابقة</em>`; }
@@ -1824,13 +1881,13 @@ async function loadReports(){
   // الحالات
   const stCount = countBy(sched,'status');
 
-  const orderRows = live.map(o => `<tr><td><b>${o.code}</b></td><td class="num">${o.paid_date}${late(o)}</td><td>${dayLabel(o.delivery_date)}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(o.payment)}</td><td>${esc(regN(o))}</td><td>${esc(o.order_type)}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'✓':'—'}</td><td>${esc(nameOf(o.created_by))}</td></tr>`);
+  const orderRows = live.map(o => `<tr><td><b>${o.code}</b></td><td class="num">${o.paid_date}${late(o)}</td><td>${dayLabel(o.delivery_date)}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(payText(o))}</td><td>${esc(regN(o))}</td><td>${esc(o.order_type)}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'✓':'—'}</td><td>${esc(nameOf(o.created_by))}</td></tr>`);
   const dailyRows = dk.slice().reverse().map(k => { const x=days[k], r=x.dr; const inq = r ? r.inq_price+r.inq_avail+r.inq_delivery+r.inq_occasion+r.inq_other : 0;
     const top = r ? topKey({'السعر':r.inq_price,'التوفر':r.inq_avail,'التوصيل':r.inq_delivery,'المناسبات':r.inq_occasion,'أخرى':r.inq_other}) : '—';
     return `<tr><td><b>${WEEK[new Date(k+'T00:00:00').getDay()]}</b> <span class="num muted">${k}</span></td><td class="num">${x.n}</td><td class="num"><b>${money(x.amt)}</b></td><td class="num">${x.n?money(x.amt/x.n):'—'}</td><td class="num">${x.del}</td>
     <td class="num">${r?(isOffDay(r)?offTag(r):r.stories):'<span class="tag warn">لم يُسجل</span>'}</td><td class="num">${r?r.views:''}</td><td class="num">${r?r.replies:''}</td><td class="num">${x.leads}</td><td class="num">${r?inq:''}</td><td>${r&&inq?top:'—'}</td></tr>`; });
   const compRows = complaints.map(c => `<tr><td class="num">${fmtDT(c.received_at)}</td><td><b>${esc(c.order_code)}</b></td><td>${esc(c.ctype)}</td><td class="desc">${esc(c.details)}</td><td class="desc">${esc(c.action)}</td><td>${esc(c.responsible||'لم يُحدد')}</td><td><span class="stp ${c.status==='تم الحل'?'st-done':'st-prep'}">${esc(c.status)}</span></td><td class="num">${c.closed_at?Math.max(0,Math.round((new Date(c.closed_at)-new Date(c.received_at))/3600000))+' ساعة':'—'}</td></tr>`);
-  const unverRows = unver.map(o => `<tr><td><b>${o.code}</b></td><td class="num">${o.paid_date}</td><td class="num">${esc(o.phone)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(o.payment)}</td><td>${o.receipt_path?'إيصال مرفق':(o.txn_ref?esc(o.txn_ref):'<span class="tag warn">بدون إثبات</span>')}</td></tr>`);
+  const unverRows = unver.map(o => `<tr><td><b>${o.code}</b></td><td class="num">${o.paid_date}</td><td class="num">${esc(o.phone)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(payText(o))}</td><td>${o.receipt_path?'إيصال مرفق':(o.txn_ref?esc(o.txn_ref):'<span class="tag warn">بدون إثبات</span>')}</td></tr>`);
   const leadRows = leads.map(l => `<tr><td class="num">${fmtDT(l.created_at)}</td><td class="num">${esc(l.phone)}</td><td>${esc(l.interest)}</td><td class="desc">${esc(l.note)}</td><td>${l.converted?`<span class="stp st-done">طلب ${l.converted}</span>`:'<span class="stp st-prep">لم يطلب</span>'}</td></tr>`);
   const topRows = topC.map(([p,c],i) => `<tr><td>${i+1}</td><td class="num"><b>${esc(p)}</b></td><td class="num">${c.n}</td><td class="num"><b>${money(c.t)}</b></td><td class="num">${money(c.t/c.n)}</td></tr>`);
 
@@ -1850,7 +1907,7 @@ async function loadReports(){
     </div>
     ${colChart('المبيعات اليومية', dk.map(k=>+k.slice(8)), dk.map(k=>days[k].amt), i=>`${dk[i]}: ${money(days[dk[i]].amt)} · ${days[dk[i]].n} طلب`, i=>dk.length>12 && (+dk[i].slice(8))%5 && i && i<dk.length-1)}
     <div class="two">
-      ${donut('حسب وسيلة الدفع', sumBy(live,'payment','amount'), PAY_COLOR)}
+      ${donut('حسب وسيلة الدفع', paySum(live), PAY_COLOR)}
       ${breakdown('التوصيل حسب المنطقة', countBy(liveR,'regionN'), sumBy(liveR,'regionN','amount'))}
       ${breakdown('توصيل / استلام', countBy(live,o=>o.fulfillment||'توصيل'), sumBy(live.map(o=>({...o,ful:o.fulfillment||'توصيل'})),'ful','amount'))}
       ${breakdown('حسب نوع الطلب', countBy(live,'order_type'), sumBy(live,'order_type','amount'))}
@@ -1904,8 +1961,8 @@ async function loadReports(){
   $('rCsv').onclick = () => downloadXlsx(`تقرير-الواتس-${from}-${to}.xlsx`, [reportSheets(from, to, REP_ORDERS)]);
 }
 function ordersSheet(list){
-  const head = ['الرقم','تاريخ التحويل','تاريخ التسجيل','وقت التسجيل','وقت الاستقبال','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','منها التوصيل','الدفع','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق','الاعتماد'];
-  const rows = list.map(o => [o.code, o.paid_date, fmtDate(o.created_at), fmtTime(o.created_at), o.received_at ? fmtTime(o.received_at) : '', o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.delivery_fee ?? '', o.payment, o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا', o.approval]);
+  const head = ['الرقم','تاريخ التحويل','تاريخ التسجيل','وقت التسجيل','وقت الاستقبال','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','منها التوصيل','الدفع','مبلغ الدفع','الدفع الثاني','مبلغ الدفع الثاني','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق','الاعتماد'];
+  const rows = list.map(o => [o.code, o.paid_date, fmtDate(o.created_at), fmtTime(o.created_at), o.received_at ? fmtTime(o.received_at) : '', o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.delivery_fee ?? '', o.payment, payParts(o)[0][1], o.payment2||'', o.payment2 ? Number(o.amount2) : '', o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا', o.approval]);
   return { name:'الطلبات', head, rows };
 }
 const exportCSV = (list, name) => downloadXlsx(name, [ordersSheet(list)]);
@@ -2008,7 +2065,7 @@ function sumCards(list){
     <div class="stat c-ink"><b>${money(s(list))}</b><span>إجمالي المبيعات</span></div>
     <div class="stat c-gold"><b>${list.length}</b><span>عدد الطلبات</span></div>
     <div class="stat c-sage"><b>${money(list.length?s(list)/list.length:0)}</b><span>متوسط الطلب</span></div>
-    ${PAYS.map((p,i)=>`<div class="stat ${['c-ink','c-sage','c-gold','c-clay','c-slate'][i]}"><b>${money(by('payment',p))}</b><span>${p} (${list.filter(o=>o.payment===p).length})</span></div>`).join('')}
+    ${PAYS.map((p,i)=>`<div class="stat ${['c-ink','c-sage','c-gold','c-clay','c-slate'][i]}"><b>${money(list.reduce((t,o)=>t+payAmt(o,p),0))}</b><span>${p} (${list.filter(o=>hasPay(o,p)).length})</span></div>`).join('')}
     ${['أبها','خميس مشيط'].map(g=>`<div class="stat c-slate"><b>${list.filter(o=>o.region===g && o.fulfillment!=='استلام').length}</b><span>توصيل ${g}</span></div>`).join('')}
     <div class="stat c-clay"><b>${list.filter(o=>o.fulfillment==='استلام').length}</b><span>استلام من المحل</span></div>
     ${isAdmin()?`<div class="stat ${list.some(o=>!o.verified)?'c-alert':'c-sage'}"><b>${list.filter(o=>!o.verified).length}</b><span>بانتظار التحقق (${money(s(list.filter(o=>!o.verified)))})</span></div>`:''}
@@ -2026,7 +2083,7 @@ async function loadDayReport(){
     <div class="rep-head"><div><h2>تقرير الطلبات اليومي</h2><p class="sub">${WEEK[new Date(day+'T00:00:00').getDay()]} ${day} · طلبات الواتس المحوّلة في هذا اليوم</p></div></div>
     ${sumCards(list)}
     <section class="panel"><div class="tablewrap"><table><thead><tr><th>#</th><th>الرقم</th><th>وقت التسجيل</th><th>التسليم</th><th>الجوال</th><th>الوصف</th><th>المبلغ</th><th>الدفع</th><th>المنطقة</th><th>النوع</th><th>الحالة</th><th>التحقق</th></tr></thead><tbody>
-    ${list.length ? list.map((o,i)=>`<tr><td>${i+1}</td><td><b>${o.code}</b></td><td class="num">${fmtTime(o.created_at)}${late(o)}${rTag(o)}</td><td>${o.delivery_date===day?'نفس اليوم':`<span class="tag violet">${dayLabel(o.delivery_date)}</span>`}${o.fulfillment==='استلام'?' <span class="tag pick">استلام</span>':''}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td><span class="pay pay-${PAYC[o.payment]}">${esc(o.payment)}</span></td><td>${esc(regName(o))}</td><td>${esc(o.order_type)}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'<span class="stp st-done">تم</span>':'<span class="stp st-prep">بانتظار</span>'}</td></tr>`).join('')
+    ${list.length ? list.map((o,i)=>`<tr><td>${i+1}</td><td><b>${o.code}</b></td><td class="num">${fmtTime(o.created_at)}${late(o)}${rTag(o)}</td><td>${o.delivery_date===day?'نفس اليوم':`<span class="tag violet">${dayLabel(o.delivery_date)}</span>`}${o.fulfillment==='استلام'?' <span class="tag pick">استلام</span>':''}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${payChips(o)}</td><td>${esc(regName(o))}</td><td>${esc(o.order_type)}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'<span class="stp st-done">تم</span>':'<span class="stp st-prep">بانتظار</span>'}</td></tr>`).join('')
       : `<tr><td colspan="12" class="empty">ما فيه طلبات في هذا اليوم.</td></tr>`}
     </tbody>${list.length?`<tfoot><tr><td colspan="6" data-label=""><b>الإجمالي (${list.length} طلب)</b></td><td class="num" data-label="المبلغ"><b>${money(total)}</b></td><td colspan="5" data-label=""></td></tr></tfoot>`:''}</table></div></section>
     ${cancelled.length?`<p class="sub">ملغي في هذا اليوم: ${cancelled.map(o=>o.code).join('، ')} (غير محسوب في المبيعات)</p>`:''}`;
@@ -2101,7 +2158,7 @@ async function loadMonthReport(){
   for (let d = new Date(from+'T00:00:00'); ymd(d) <= to; d.setDate(d.getDate()+1)) days[ymd(d)] = [];
   list.forEach(o => { const k = o.paid_date; if (days[k]) days[k].push(o); });
   const s = a => a.reduce((t,o)=>t+Number(o.amount),0);
-  const cell = (a, k, v) => { const x = a.filter(o=>o[k]===v); return x.length ? money(s(x)) : '—'; };
+  const cell = (a, k, v) => { const x = a.filter(o=>hasPay(o,v)); return x.length ? money(x.reduce((t,o)=>t+payAmt(o,v),0)) : '—'; };
   const rows = Object.keys(days).map(k => { const a = days[k];
     return `<tr class="${a.length?'':'zero'}"><td><b>${WEEK[new Date(k+'T00:00:00').getDay()]}</b> <span class="num muted">${k.slice(8)}/${k.slice(5,7)}</span></td><td class="num">${a.length||'—'}</td><td class="num"><b>${a.length?money(s(a)):'—'}</b></td>${PAYS.map(p=>`<td class="num">${cell(a,'payment',p)}</td>`).join('')}${REGS.map(g=>`<td class="num">${a.filter(o=>o.region===g && o.fulfillment!=='استلام').length||'—'}</td>`).join('')}<td class="num">${a.filter(o=>o.fulfillment==='استلام').length||'—'}</td></tr>`; }).join('');
   const best = Object.keys(days).sort((a,b)=>s(days[b])-s(days[a]))[0];
@@ -2113,13 +2170,13 @@ async function loadMonthReport(){
     <tfoot><tr><td><b>الإجمالي</b></td><td class="num"><b>${list.length}</b></td><td class="num"><b>${money(s(list))}</b></td>${PAYS.map(p=>`<td class="num"><b>${cell(list,'payment',p)}</b></td>`).join('')}${REGS.map(g=>`<td class="num"><b>${list.filter(o=>o.region===g && o.fulfillment!=='استلام').length}</b></td>`).join('')}<td class="num"><b>${list.filter(o=>o.fulfillment==='استلام').length}</b></td></tr></tfoot></table></div></section>
     ${actTable(act)}
     ${table('كل طلبات الشهر', ['الرقم','التاريخ','التسليم','الجوال','الوصف','المبلغ','الدفع','المنطقة','الحالة','التحقق'],
-      list.sort((a,b)=>a.created_at<b.created_at?-1:1).map(o=>`<tr><td><b>${o.code}</b></td><td class="num">${o.paid_date}${late(o)}</td><td>${o.delivery_date}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(o.payment)}</td><td>${esc(regName(o))}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'تم':'بانتظار'}</td></tr>`))}`;
+      list.sort((a,b)=>a.created_at<b.created_at?-1:1).map(o=>`<tr><td><b>${o.code}</b></td><td class="num">${o.paid_date}${late(o)}</td><td>${o.delivery_date}</td><td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(payText(o))}</td><td>${esc(regName(o))}</td><td><span class="stp ${ST_CLASS[o.status]}">${esc(o.status)}</span></td><td>${o.verified?'تم':'بانتظار'}</td></tr>`))}`;
 }
 $('rDayCsv').onclick = () => downloadXlsx(`تقرير-يومي-${$('rDay').value}.xlsx`, [reportSheets($('rDay').value, $('rDay').value, RDATA)]);
 $('rMonthCsv').onclick = () => downloadXlsx(`تقرير-شهري-${$('rMonth').value}.xlsx`, [[monthSheet(MROWS)], reportSheets(...monthRange($('rMonth').value), RDATA)]);
 
 /* ================== الاعتماد وسجل التدقيق (الأدمن) ================== */
-const FIELD_AR = { phone:'الجوال', amount:'المبلغ', delivery_fee:'مبلغ التوصيل', description:'الوصف', payment:'الدفع', region:'المنطقة', region_other:'اسم المنطقة', delivery_date:'تاريخ التسليم', paid_date:'تاريخ التحويل', order_type:'النوع', source:'المصدر', status:'الحالة', txn_ref:'رقم العملية', receipt_path:'الإيصال', verified:'التحقق', fulfillment:'طريقة التسليم', approval:'الاعتماد', reject_reason:'سبب الرفض', responsible:'المتسبب', action:'الإجراء', notes:'ملاحظات', ctype:'نوع الشكوى', details:'التفاصيل', order_code:'رقم الطلب' };
+const FIELD_AR = { phone:'الجوال', amount:'المبلغ', delivery_fee:'مبلغ التوصيل', description:'الوصف',  payment:'الدفع', payment2:'الطريقة الثانية', amount2:'مبلغ الطريقة الثانية', receipt_path2:'إيصال الطريقة الثانية', region:'المنطقة', region_other:'اسم المنطقة', delivery_date:'تاريخ التسليم', paid_date:'تاريخ التحويل', order_type:'النوع', source:'المصدر', status:'الحالة', txn_ref:'رقم العملية', receipt_path:'الإيصال', verified:'التحقق', fulfillment:'طريقة التسليم', approval:'الاعتماد', reject_reason:'سبب الرفض', responsible:'المتسبب', action:'الإجراء', notes:'ملاحظات', ctype:'نوع الشكوى', details:'التفاصيل', order_code:'رقم الطلب' };
 const SKIP_F = ['verified_by','verified_at','approved_by','approved_at','delivered_at','closed_at','updated_at','code'];
 let PROFILES = [];
 const nameOfEmail = e => ((PROFILES.find(p => p.email.toLowerCase()===(e||'').toLowerCase())||{}).name) || e || '—';
@@ -2136,7 +2193,7 @@ async function loadApprovals(){
   stats('apStats', [[P.length,'طلب بانتظار الاعتماد', P.length?'alert':'sage'],[money(P.reduce((s,o)=>s+Number(o.amount),0)),'مبالغها','gold']]);
   $('apRows').innerHTML = P.length ? P.map(o => `<tr>
     <td><b>${o.code}</b></td><td class="num"><b>${o.paid_date}</b></td><td class="num">${fmtDT(o.created_at)}</td><td>${esc(nameOfEmail(o.created_by))}</td>
-    <td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(o.payment)}</td>
+    <td class="num">${esc(o.phone)}</td><td class="desc">${esc(o.description)}</td><td class="num"><b>${money(o.amount)}</b></td><td>${esc(payText(o))}</td>
     <td>${o.receipt_path?`<a class="link" data-file="${esc(o.receipt_path)}">الإيصال</a>`:(o.txn_ref?esc(o.txn_ref):'<span class="tag warn">بدون إثبات</span>')}</td>
     <td><span class="rowbtns"><button class="btn small" data-approve="${o.id}">اعتماد</button><button class="btn ghost small" data-reject="${o.id}">رفض</button></span></td></tr>`).join('')
     : `<tr><td colspan="10" class="empty">ما فيه طلبات بانتظار الاعتماد 👌</td></tr>`;
@@ -2146,7 +2203,7 @@ async function loadApprovals(){
   $('auRows').innerHTML = (aud||[]).length ? aud.map(a => {
     const o = a.old_data||{}, n = a.new_data||{}, rec = n.code||o.code||(a.tbl==='wa_complaints'?`شكوى #${a.row_id}`:a.row_id);
     let what = '';
-    if (a.action==='INSERT') what = a.tbl==='wa_orders' ? `طلب جديد · ${money(n.amount)} · ${esc(n.payment||'')}` : `شكوى جديدة · ${esc(n.ctype||'')}`;
+    if (a.action==='INSERT') what = a.tbl==='wa_orders' ? `طلب جديد · ${money(n.amount)} · ${esc(payText(n))}` : `شكوى جديدة · ${esc(n.ctype||'')}`;
     else if (a.action==='DELETE') what = `<b style="color:var(--alert)">حذف</b>${o.amount?` · ${money(o.amount)}`:''}`;
     else what = Object.keys(n).filter(k => !SKIP_F.includes(k) && JSON.stringify(n[k])!==JSON.stringify(o[k])).map(k => `${FIELD_AR[k]||k}: <span class="muted">${esc(o[k]??'—')}</span> ← <b>${esc(n[k]??'—')}</b>`).join('<br>') || '<span class="muted">بدون تغيير فعلي</span>';
     return `<tr><td class="num">${fmtDT(a.at)}</td><td>${esc(nameOfEmail(a.actor))}</td><td><b>${esc(String(rec))}</b></td><td class="desc">${what}</td></tr>`; }).join('')
