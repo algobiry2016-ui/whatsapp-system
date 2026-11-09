@@ -454,6 +454,7 @@ details.rep[open] summary{margin-bottom:12px}
       <div class="field wide"><label for="nDesc">وصف الطلب</label><input id="nDesc" placeholder="مثال: باقة ورد جوري"></div>
       <div class="field wide"><label for="nAddons">الإضافات <span class="opt">(اختياري)</span></label><input id="nAddons" placeholder="مثال: بالونات، شوكولاتة"></div>
       <div class="field wide"><label for="nCard">العبارة <span class="opt">(اختياري — الصقيها من الواتس)</span></label><textarea id="nCard" rows="2"></textarea></div>
+      <div class="field wide hidden" id="nNotesWrap"><label for="nNotes">ملاحظات <span class="opt">(اختياري — تطلع للمنسق والمندوب بالأحمر)</span></label><textarea id="nNotes" rows="2" maxlength="500" placeholder="مثال: اتصلوا على المستلم قبل التوصيل"></textarea></div>
       <div class="field wide"><label>التسليم</label>
         <div class="chips">
           <input type="radio" name="nful" id="nf1" value="توصيل" checked><label for="nf1">توصيل</label>
@@ -714,7 +715,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_1Lcx6NE0zKb-xrvH1K4cYA_DeJCaJd7';   //
 const PICKUP_REGION = 'أبها';   // منطقة المحل — طلبات الاستلام تنحفظ عليها
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth:{ storageKey:'dm-whatsapp-auth' } });  // جلسة مستقلة عن نظام المشتريات
 const $ = id => document.getElementById(id);
-let ME = { email:'', name:'', role:'' }, HAS_RECV = false, HAS_FEE = false, HAS_SPLIT = false;
+let ME = { email:'', name:'', role:'' }, HAS_RECV = false, HAS_FEE = false, HAS_SPLIT = false, HAS_NOTES = false;
 // فصل مبلغ الطلب عن التوصيل: يبدأ من أول نوفمبر (بطلب رؤوف عشان ما يتلخبط الشهر)، وبعد إضافة عمود delivery_fee.
 // amount يبقى الإجمالي المدفوع (الطلب + التوصيل)، فالتقارير والتحقق ما تتغير
 const FEE_FROM = '2026-11-01';
@@ -1057,7 +1058,7 @@ $('nSave').onclick = async () => {
     // 1) هنا مثل العادة
     const receipt_path = RECEIPT_PAY.includes(payment) ? await upload($('nReceipt').files[0], 'receipts') : null;
     if (N_KNOWN === null) await nCustomer();
-    const addons = $('nAddons').value.trim();
+    const addons = $('nAddons').value.trim(), notes = HAS_NOTES ? $('nNotes').value.trim() : '';
     const row = { phone, amount: amount + (fee || 0), description: addons ? `${desc} + ${addons}` : desc, payment, region, delivery_date, paid_date,
       region_other: !pick && region==='أخرى' ? area : null,
       fulfillment: ful, order_type:'عادي', source: N_KNOWN === null ? null : (N_KNOWN ? 'عميل سابق' : 'عميل جديد'), status:'قيد التجهيز',
@@ -1065,6 +1066,7 @@ $('nSave').onclick = async () => {
     // وقت الاستقبال: وقت التسجيل نفسه
     if (HAS_RECV) row.received_at = new Date().toISOString();
     if (HAS_FEE) row.delivery_fee = fee || 0;
+    if (notes) row.notes = notes;
     if (split) Object.assign(row, { payment2, amount2, receipt_path2: RECEIPT_PAY.includes(payment2) ? await upload($('nReceipt2').files[0], 'receipts') : null });
     const { data, error } = await sb.from('wa_orders').insert(row).select('id,code,approval').single();
     if (error) throw error;
@@ -1072,13 +1074,13 @@ $('nSave').onclick = async () => {
     const p = { waId:data.id, code:data.code, photos: await Promise.all(N_PHOTOS.map(nShrink)), voices:[...N_VOICES],
       body:{ delivery_slot:slot, recipient_phone: recipient || null, card_message: $('nCard').value.trim() || null,
         florist_id: $('nFlorist').value || null,
-        description: desc, addons: addons || null } };
+        description: desc, addons: addons || null, notes: notes || null } };
     try{ await nSend(p); }
     catch(e){ p.err = e.message; N_PENDING = p; }
     const note = N_PENDING ? `انحفظ ${data.code} هنا، بس ما وصل للمنسق — اضغطي إعادة الإرسال` : `تم ${data.code} ووصل للمنسق${data.approval==='بانتظار الاعتماد' ? ' (التحويل بانتظار اعتماد الأدمن)' : ''}`;
     toast(note); msg('nMsg', note, !N_PENDING); nPendingShow();
     // فورم فاضي للطلب الجاي
-    ['nPhone','nRecipient','nAmount','nFee','nDesc','nAddons','nCard','nRegionOther','nTxn','nReceipt','nAmt2','nReceipt2'].forEach(id => $(id).value='');
+    ['nPhone','nRecipient','nAmount','nFee','nDesc','nAddons','nCard','nNotes','nRegionOther','nTxn','nReceipt','nAmt2','nReceipt2'].forEach(id => $(id).value='');
     $('nSplit').checked = false;
     document.querySelectorAll('input[name="npay"],input[name="nreg"]').forEach(r => r.checked=false);
     $('nf1').checked = true; $('nSlot').value = ''; $('nFlorist').value=''; $('nPhoneHint').textContent=''; N_KNOWN = null;
@@ -1103,6 +1105,9 @@ async function boot(){
   HAS_FEE = !(await sb.from('wa_orders').select('delivery_fee').limit(1)).error;
   // الدفع المقسّم يطلع بعد ما تنضاف أعمدته (supabase/split-payment.sql)
   HAS_SPLIT = !(await sb.from('wa_orders').select('payment2').limit(1)).error;
+  // خانة الملاحظات تطلع بعد ما ينضاف عمودها (supabase/order-notes.sql)
+  HAS_NOTES = !(await sb.from('wa_orders').select('notes').limit(1)).error;
+  $('nNotesWrap').classList.toggle('hidden', !HAS_NOTES);
   document.querySelectorAll('.split2').forEach(el => el.classList.toggle('hidden', !HAS_SPLIT)); nSplitSync();
   $('eFeeWrap').classList.toggle('hidden', !HAS_FEE); feeSync();
   document.querySelectorAll('.rtime').forEach(el => el.classList.toggle('hidden', !HAS_RECV));
@@ -1405,7 +1410,7 @@ function renderOrders(){
     <td><b>${o.code}</b>${rTag(o)}${o.approval!=='معتمد'?` <span class="stp ${o.approval==='مرفوض'?'st-cancel':'st-prep'}" title="${esc(o.reject_reason||'')}">${o.approval}${o.reject_reason?': '+esc(o.reject_reason):''}</span>`:''}${late(o)}${o.order_type!=='عادي'?` <span class="tag violet">${esc(o.order_type)}</span>`:''}</td>
     <td><span class="tag ${o.delivery_date===t?'blue':o.delivery_date>t?'violet':''}">${dayLabel(o.delivery_date)}</span>${o.fulfillment==='استلام'?' <span class="tag pick">استلام</span>':''}</td>
     <td class="num"><a class="link" href="https://wa.me/966${esc(o.phone.replace(/^0/,''))}" target="_blank" rel="noopener">${esc(o.phone)}</a>${phoneTag(o.phone)}</td>
-    <td class="desc">${esc(o.description)}${o.source?` <span class="tag rose">${esc(o.source)}</span>`:''}</td>
+    <td class="desc">${esc(o.description)}${o.source?` <span class="tag rose">${esc(o.source)}</span>`:''}${o.notes?`<br><small style="color:var(--danger,#b42318)">📝 ${esc(o.notes)}</small>`:''}</td>
     <td class="num"><b>${money(o.amount)}</b>${Number(o.delivery_fee) ? `<br><span class="muted" style="font-size:.78rem">منها توصيل ${money(o.delivery_fee)}</span>` : ''}</td>
     <td>${payChips(o)}</td>
     <td>${o.fulfillment==='استلام' ? '<span class="muted">من المحل</span>' : esc(o.region==='أخرى' ? (o.region_other||'أخرى') : o.region)}</td>
@@ -1961,8 +1966,8 @@ async function loadReports(){
   $('rCsv').onclick = () => downloadXlsx(`تقرير-الواتس-${from}-${to}.xlsx`, [reportSheets(from, to, REP_ORDERS)]);
 }
 function ordersSheet(list){
-  const head = ['الرقم','تاريخ التحويل','تاريخ التسجيل','وقت التسجيل','وقت الاستقبال','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','منها التوصيل','الدفع','مبلغ الدفع','الدفع الثاني','مبلغ الدفع الثاني','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق','الاعتماد'];
-  const rows = list.map(o => [o.code, o.paid_date, fmtDate(o.created_at), fmtTime(o.created_at), o.received_at ? fmtTime(o.received_at) : '', o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.delivery_fee ?? '', o.payment, payParts(o)[0][1], o.payment2||'', o.payment2 ? Number(o.amount2) : '', o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا', o.approval]);
+  const head = ['الرقم','تاريخ التحويل','تاريخ التسجيل','وقت التسجيل','وقت الاستقبال','تاريخ التسليم','طريقة التسليم','الجوال','الوصف','المبلغ','منها التوصيل','الدفع','مبلغ الدفع','الدفع الثاني','مبلغ الدفع الثاني','رقم العملية','المنطقة','النوع','العميل','الحالة','تم التحقق','الاعتماد','ملاحظات'];
+  const rows = list.map(o => [o.code, o.paid_date, fmtDate(o.created_at), fmtTime(o.created_at), o.received_at ? fmtTime(o.received_at) : '', o.delivery_date, o.fulfillment||'توصيل', o.phone, o.description, o.amount, o.delivery_fee ?? '', o.payment, payParts(o)[0][1], o.payment2||'', o.payment2 ? Number(o.amount2) : '', o.txn_ref||'', o.region==='أخرى'?(o.region_other||'أخرى'):o.region, o.order_type, o.source||'', o.status, o.verified?'نعم':'لا', o.approval, o.notes||'']);
   return { name:'الطلبات', head, rows };
 }
 const exportCSV = (list, name) => downloadXlsx(name, [ordersSheet(list)]);
